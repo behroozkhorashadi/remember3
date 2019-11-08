@@ -90,7 +90,7 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertFalse(store.has_command_by_name("vim somefil"))
 
     def test_verifySqldb_shouldSaveAndStore_whenCommandIsAdded(self):
-        file_path = ''
+        file_name = ''
         try:
             file_name = os.path.join(TEST_PATH_DIR, "delete_test_pickle.db")
             command_store = command_store_lib.SqlCommandStore(file_name)
@@ -100,8 +100,8 @@ class TestCommandStoreLib(unittest.TestCase):
             command_store = command_store_lib.load_command_store(file_name)
             self.assertTrue(command_store.has_command(command))
         finally:
-            if file_path:
-                os.remove(file_path)
+            if file_name:
+                os.remove(file_name)
 
     def test_sqlCommandStore_whenAddingItem_shouldReturnTrueWhenSearching(self):
         file_path = ''

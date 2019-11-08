@@ -1,11 +1,10 @@
+"""
+This module handles the command store interactive mode.
+"""
 import subprocess
 
 import remember.command_store_lib as command_store
 from remember.command_store_lib import bcolors
-
-"""
-This module handles the command store interactive mode.
-"""
 
 
 class InteractiveCommandExecutor(object):

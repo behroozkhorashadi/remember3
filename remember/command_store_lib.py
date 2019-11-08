@@ -1,11 +1,10 @@
-#! /usr/bin/env python
 """
 This Module contains the core logic for the remember functions.
 """
 import sqlite3
 import os.path
 
-from remember.sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
+from .sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
     SIMPLE_SELECT_COMMAND_QUERY, DELETE_FROM_REMEMBER, GET_ROWID_FOR_COMMAND, \
     INSERT_INTO_REMEMBER_QUERY, UPDATE_COUNT_QUERY, TABLE_EXISTS_QUERY, TABLE_NAME
 
@@ -369,7 +368,6 @@ class SqlCommandStore(object):
             cursor.execute(search_query)
             rows = cursor.fetchall()
             for row in rows:
-                print(row)
                 command = Command(row[0], row[2], row[1])
                 command.set_command_info(row[3])
                 matches.append(command)

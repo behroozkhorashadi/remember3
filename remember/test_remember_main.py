@@ -1,6 +1,6 @@
 import argparse
 from unittest import TestCase
-from remember import remember_main
+import remember_main
 import mock
 
 from remember.command_store_lib import SqlCommandStore

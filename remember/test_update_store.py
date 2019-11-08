@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import mock
 
-from remember import update_store
+import update_store
 from remember.command_store_lib import SqlCommandStore
 
 

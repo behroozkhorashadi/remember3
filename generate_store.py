@@ -1,6 +1,4 @@
-#! /usr/bin/env python
 """ This module generates the store pickle file."""
-import argparse
 import os.path
 import remember.command_store_lib as com_lib
 from remember import handle_args
@@ -11,7 +9,7 @@ IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
 def main():
     """Main entry point for this module."""
     args = handle_args.setup_args_for_generate()
-    generate_store_from_args(args.historyfile, args.save_dir)
+    generate_store_from_args(args.history_file_path, args.save_dir)
 
 
 def generate_store_from_args(history_file_path, save_directory):

@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 import remember.command_store_lib as command_store
 from remember import handle_args
 from remember.interactive import InteractiveCommandExecutor
