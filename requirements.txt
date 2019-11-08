@@ -1,0 +1,7 @@
+mock
+coverage==4.5.4
+pytest
+pytest-cov
+coveralls==1.8.2
+mypy 
+mypy-extensions 
