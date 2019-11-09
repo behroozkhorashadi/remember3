@@ -39,7 +39,7 @@ class Command(object):
 
     def __init__(self, command_str: str = "", last_used: float = time.time(),
                  count_seen: int = 1):
-        self._command_str = Command.get_currated_command(command_str)
+        self._command_str = Command.get_curated_command(command_str)
         self._context_before: Set = set()
         self._context_after: Set = set()
         self._manual_comments = "Place any comments here."
@@ -96,15 +96,15 @@ class Command(object):
         self._command_info = info
 
     @classmethod
-    def get_currated_command(cls, command_str: str) -> str:
+    def get_curated_command(cls, command_str: str) -> str:
         """Given a command string curate the string and return."""
-        currated_command = re.sub(' +', ' ', command_str.strip())
-        if currated_command.startswith(":"):
+        curated_command = re.sub(' +', ' ', command_str.strip())
+        if curated_command.startswith(":"):
             p = re.compile(";")
-            m = p.search(currated_command)
-            if m and len(currated_command) > m.start() + 1:
-                currated_command = currated_command[m.start() + 1:].strip()
-        return currated_command
+            m = p.search(curated_command)
+            if m and len(curated_command) > m.start() + 1:
+                curated_command = curated_command[m.start() + 1:].strip()
+        return curated_command
 
 
 class SqlCommandStore(object):
