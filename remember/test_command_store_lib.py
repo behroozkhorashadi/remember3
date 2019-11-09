@@ -144,21 +144,21 @@ class TestCommandStoreLib(unittest.TestCase):
 
     def test_CuratedCommands_ReturnCorrectResults(self) -> None:
         self.assertEqual("git foo",
-                         command_store_lib.Command.get_currated_command("    git     foo"))
+                         command_store_lib.Command.get_curated_command("    git     foo"))
         self.assertEqual(". git foo",
-                         command_store_lib.Command.get_currated_command(" .   git     foo"))
+                         command_store_lib.Command.get_curated_command(" .   git     foo"))
 
     def test_CuratedZshCommands_ReturnRemovedHeaders(self) -> None:
-        self.assertEqual("setopt SHARE_HISTORY", command_store_lib.Command.get_currated_command(
+        self.assertEqual("setopt SHARE_HISTORY", command_store_lib.Command.get_curated_command(
             ": 1503848943:0;setopt SHARE_HISTORY"))
         self.assertEqual("echo $HISTFILE; other command",
-                         command_store_lib.Command.get_currated_command(
+                         command_store_lib.Command.get_curated_command(
                              ": 1503848500:0;echo $HISTFILE; other command"))
 
     def test_CurratedZshCommandsWeirdFormat_ReturnRemovedHeaders(self) -> None:
-        self.assertEqual("setopt SHARE_HISTORY", command_store_lib.Command.get_currated_command(
+        self.assertEqual("setopt SHARE_HISTORY", command_store_lib.Command.get_curated_command(
             ": 1503848943:0; setopt SHARE_HISTORY"))
-        self.assertEqual(": 1503848500:0;", command_store_lib.Command.get_currated_command(
+        self.assertEqual(": 1503848500:0;", command_store_lib.Command.get_curated_command(
             ": 1503848500:0; "))
 
     def test_delete_sql_whenExists_shouldDeleteFromStore(self) -> None:
