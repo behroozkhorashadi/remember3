@@ -3,7 +3,7 @@ from remember import handle_args
 from remember.interactive import InteractiveCommandExecutor
 
 
-def main(command_executor):
+def main(command_executor: InteractiveCommandExecutor) -> None:
     """Entry point for this executable python module."""
     args = handle_args.setup_args_for_update()
     store_file_path = command_store.get_file_path(args.save_dir)

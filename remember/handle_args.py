@@ -1,7 +1,7 @@
 import argparse
 
 
-def setup_args_for_update():
+def setup_args_for_update() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     add_search(parser)
     parser.add_argument(
@@ -18,13 +18,13 @@ def setup_args_for_update():
     return parser.parse_args()
 
 
-def setup_for_migrate():
+def setup_for_migrate() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     add_save_dir(parser)
     return parser.parse_args()
 
 
-def setup_args_for_search():
+def setup_args_for_search() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     add_search(parser)
     parser.add_argument(
@@ -36,20 +36,20 @@ def setup_args_for_search():
     return parser.parse_args()
 
 
-def setup_args_for_generate():
+def setup_args_for_generate() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     add_history_arg_to_parser(parser)
     add_save_dir(parser)
     return parser.parse_args()
 
 
-def add_history_arg_to_parser(parser):
+def add_history_arg_to_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "history_file_path",
         help="The path to the history file. ex: '~/.bash_history'")
 
 
-def add_search(parser):
+def add_search(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-a",
         "--all",
@@ -62,13 +62,13 @@ def add_search(parser):
         action="store_true")
 
 
-def add_save_dir(parser):
+def add_save_dir(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "save_dir",
         help="The directory path. ex: ~/dir/where/serializedfile/is")
 
 
-def add_required_terms(parser, add_history_arg=False):
+def add_required_terms(parser: argparse.ArgumentParser, add_history_arg: bool = False) -> None:
     add_save_dir(parser)
     if add_history_arg:
         add_history_arg_to_parser(parser)
