@@ -4,6 +4,7 @@ import subprocess
 import sys
 import unittest
 from functools import partial
+from typing import List, Tuple, Any
 
 import remember.command_store_lib as command_store_lib
 import remember.interactive as interactive
@@ -15,7 +16,7 @@ sys.path.insert(0, TEST_PATH_DIR + '/../')
 
 
 class Test(unittest.TestCase):
-    def test_command_update_info_should_correctly_set_info(self):
+    def test_command_update_info_should_correctly_set_info(self) -> None:
         interactive = InteractiveCommandExecutor()
         command = Command("git rest --hard HEAD")
         command_info = 'command info'
@@ -24,7 +25,7 @@ class Test(unittest.TestCase):
         self.assertEqual(command.get_command_info(), command_info)
         self.reset_input()
 
-    def test_command_update_info_should_fail_set_info_because_exit(self):
+    def test_command_update_info_should_fail_set_info_because_exit(self) -> None:
         interactive = InteractiveCommandExecutor()
         command = Command("git rest --hard HEAD")
         self.set_input('exit')
@@ -32,7 +33,7 @@ class Test(unittest.TestCase):
         self.assertEqual(command.get_command_info(), "")
         self.reset_input()
 
-    def test_delete_command_from_store_should_delete(self):
+    def test_delete_command_from_store_should_delete(self) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command = Command("testing delete this command")
         store.add_command(command)
@@ -43,7 +44,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_num_commands(), 0)
         self.reset_input()
 
-    def test_delete_command_from_store_when_quit_should_not_delete(self):
+    def test_delete_command_from_store_when_quit_should_not_delete(self) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command = Command("testing delete this command")
         store.add_command(command)
@@ -54,7 +55,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_num_commands(), 1)
         self.reset_input()
 
-    def test_delete_command_from_store_when_no_should_not_delete(self):
+    def test_delete_command_from_store_when_no_should_not_delete(self) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command = Command("testing delete this command")
         store.add_command(command)
@@ -65,7 +66,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_num_commands(), 1)
         self.reset_input()
 
-    def test_delete_command_from_store_with_exit_input_should_not_delete(self):
+    def test_delete_command_from_store_with_exit_input_should_not_delete(self) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command = Command("testing delete this command")
         store.add_command(command)
@@ -76,7 +77,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_num_commands(), 1)
         self.reset_input()
 
-    def test_delete_command_from_store_with_all_should_remove_all(self):
+    def test_delete_command_from_store_with_all_should_remove_all(self) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command = Command("testing delete this command")
         command2 = Command("remove this also")
@@ -90,7 +91,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_num_commands(), 0)
         self.reset_input()
 
-    def test_delete_command_from_store_with_1_2_should_remove_all(self):
+    def test_delete_command_from_store_with_1_2_should_remove_all(self) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command = Command("testing delete this command")
         command2 = Command("remove this also")
@@ -104,7 +105,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_num_commands(), 0)
         self.reset_input()
 
-    def test_delete_command_from_store_with_invalid_should_remove_1(self):
+    def test_delete_command_from_store_with_invalid_should_remove_1(self) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command = Command("testing delete this command")
         command2 = Command("remove this also")
@@ -118,7 +119,7 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_num_commands(), 1)
         self.reset_input()
 
-    def test_delete_command_from_store_with_both_invalid_should_remove_0(self):
+    def test_delete_command_from_store_with_both_invalid_should_remove_0(self) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command = Command("testing delete this command")
         command2 = Command("remove this also")
@@ -132,14 +133,14 @@ class Test(unittest.TestCase):
         self.assertEqual(store.get_num_commands(), 2)
         self.reset_input()
 
-    def test_run_when_command_is_executed(self):
+    def test_run_when_command_is_executed(self) -> None:
         old_call = subprocess.call
         store = command_store_lib.SqlCommandStore(':memory:')
         command_str = "testing delete this command"
         command = Command(command_str)
         command2 = Command("remove this also")
         test_call = partial(self.subprocess_call_mock, expected=command_str)
-        subprocess.call = test_call
+        subprocess.call = test_call  # type: ignore
         self.assertEqual(store.get_num_commands(), 0)
         store.add_command(command)
         store.add_command(command2)
@@ -150,25 +151,26 @@ class Test(unittest.TestCase):
         self.reset_input()
         subprocess.call = old_call
 
-    def set_input(self, *args):
+    def set_input(self, *args: str) -> None:
         self.original_raw_input = interactive.get_user_input
-        interactive.get_user_input = InputMock(args)
+        # noinspection Mypy
+        interactive.get_user_input = InputMock(args)  # type: ignore
 
-    def reset_input(self):
+    def reset_input(self) -> None:
         if self.original_raw_input:
             interactive.get_user_input = self.original_raw_input
 
-    def subprocess_call_mock(self, command_str, expected, shell):
+    def subprocess_call_mock(self, command_str: str, expected: str, shell: Any) -> None:
         self.assertEqual(expected, command_str)
         self.assertTrue(shell)
 
 
 class InputMock(object):
-    def __init__(self, args):
+    def __init__(self, args: Tuple[str, ...]) -> None:
         self.index = 0
         self.args = args
 
-    def __call__(self, input):
+    def __call__(self, _: Any) -> str:
         return_value = self.args[self.index % len(self.args)]
         self.index = self.index + 1
         return return_value

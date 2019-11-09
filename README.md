@@ -4,6 +4,7 @@
 [![Build Status](https://travis-ci.org/behroozkhorashadi/remember3.svg?branch=master)](https://travis-ci.org/behroozkhorashadi/remember3)
 [![Coverage Status](https://coveralls.io/repos/github/behroozkhorashadi/remember3/badge.svg?branch=master)](https://coveralls.io/github/behroozkhorashadi/remember3?branch=master)
 [![PyPI pyversions](https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7-blue)](https://pypi.python.org/pypi/ansicolortags/)
+[![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 
 ## remember3
 

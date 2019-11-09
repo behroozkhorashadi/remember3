@@ -12,9 +12,9 @@ class TestHandleArgs(TestCase):
                                                 save_dir='save',
                                                 history_file_path='hist',
                                                 query='query'))
-    def test_setup_args_for_update_when(self, mock_args):
+    def test_setup_args_for_update_when(self, mock_args: mock.Mock) -> None:
         args = handle_args.setup_args_for_update()
-        assert args.delete == True
+        assert args.delete
         assert args.save_dir == 'save'
         assert args.history_file_path == 'hist'
         assert args.query == 'query'
@@ -27,7 +27,7 @@ class TestHandleArgs(TestCase):
                                                 save_dir='save',
                                                 history_file_path='hist',
                                                 query='query'))
-    def test_setup_args_for_search(self, mock_args):
+    def test_setup_args_for_search(self, mock_args: mock.Mock) -> None:
         args = handle_args.setup_args_for_search()
         assert args.json == True
         assert args.all == True
@@ -41,7 +41,7 @@ class TestHandleArgs(TestCase):
                 return_value=argparse.Namespace(json=True,
                                                 save_dir='save',
                                                 history_file_path='hist'))
-    def test_setup_args_for_generate(self, mock_args):
+    def test_setup_args_for_generate(self, mock_args: mock.Mock) -> None:
         args = handle_args.setup_args_for_generate()
         assert args.json == True
         assert args.save_dir == 'save'
