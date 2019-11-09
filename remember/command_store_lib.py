@@ -290,7 +290,7 @@ def _get_unread_commands(src_file: str) -> List:
         for line in reversed(open(tmp_hist_file, 'rb').readlines()):
             try:
                 line_str = line.decode("utf-8")
-            except UnicodeDecodeError as e:
+            except UnicodeDecodeError:
                 continue
             if PROCESSED_TO_TAG in line_str:
                 return list(reversed(unprocessed_lines))

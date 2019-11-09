@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+# flake8: noqa
 import os
 import subprocess
 import sys
