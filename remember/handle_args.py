@@ -60,12 +60,22 @@ def add_search(parser: argparse.ArgumentParser) -> None:
         "--startswith",
         help="Show only commands that strictly start with input command.",
         action="store_true")
+    add_result_count_max(parser)
 
 
 def add_save_dir(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "save_dir",
         help="The directory path. ex: ~/dir/where/serializedfile/is")
+
+
+def add_result_count_max(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "-m",
+        "--max",
+        type=int,
+        default=10000,
+        help="the maximum number of returned results you want to see.")
 
 
 def add_required_terms(parser: argparse.ArgumentParser, add_history_arg: bool = False) -> None:

@@ -33,6 +33,7 @@ class TestMain(TestCase):
                                                         history_file_path='hist',
                                                         delete=False,
                                                         updateinfo=False,
+                                                        max=1000,
                                                         query='query')):
             update_store.main(InteractiveCommandExecutor())
             load_store_mock.assert_called()
@@ -51,6 +52,7 @@ class TestMain(TestCase):
                                                         history_file_path='hist',
                                                         delete=True,
                                                         updateinfo=False,
+                                                        max=1000,
                                                         query='query')):
             command_executor_mock = mock.Mock()
             command_executor_mock.delete_interaction.return_value = True
@@ -71,6 +73,7 @@ class TestMain(TestCase):
                                                         history_file_path='hist',
                                                         delete=False,
                                                         updateinfo=True,
+                                                        max=1000,
                                                         query='query')):
             command_executor_mock = mock.Mock()
             command_executor_mock.set_command_info.return_value = True

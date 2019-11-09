@@ -17,6 +17,7 @@ class TestMain(TestCase):
                                                         execute=False,
                                                         save_dir=None,
                                                         history_file_path='hist',
+                                                        max=1000,
                                                         query='query')):
             result = remember_main.main()
             assert result
@@ -47,6 +48,7 @@ class TestMain(TestCase):
                                                         execute=False,
                                                         save_dir='save_dir',
                                                         history_file_path='hist',
+                                                        max=1000,
                                                         query='query')):
             remember_main.main()
             print_mock.assert_called_once()
