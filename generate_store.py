@@ -1,6 +1,5 @@
 """ This module generates the store pickle file."""
 import os.path
-from typing import Optional
 
 import remember.command_store_lib as com_lib
 from remember import handle_args

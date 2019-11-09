@@ -8,5 +8,6 @@ install:
 script:
   - pytest -v --cov=remember
   - mypy . --disallow-untyped-calls --disallow-untyped-defs --check-untyped-defs --warn-incomplete-stub --warn-redundant-casts --warn-no-return --warn-unused-ignores --ignore-missing-imports
+  - flake8 --exclude=venv* --statistics 
 after_success:
   - coveralls

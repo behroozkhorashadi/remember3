@@ -1,3 +1,4 @@
+# flake8: noqa
 import argparse
 from typing import List
 from unittest import TestCase
