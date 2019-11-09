@@ -1,10 +1,11 @@
 # Overview
+[![Travis](https://img.shields.io/travis/behroozkhorashadi/remember3/master.svg?label=Travis%20CI)](
+    https://travis-ci.org/behroozkhorashadi/remember3)
+[![Build Status](https://travis-ci.org/behroozkhorashadi/remember3.svg?branch=master)](https://travis-ci.org/behroozkhorashadi/remember3)
+[![Coverage Status](https://coveralls.io/repos/github/behroozkhorashadi/remember3/badge.svg?branch=master)](https://coveralls.io/github/behroozkhorashadi/remember3?branch=master)
+[![PyPI pyversions](https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7-blue)](https://pypi.python.org/pypi/ansicolortags/)
 
-[![Build Status](https://travis-ci.org/behroozkhorashadi/remember-commands.svg?branch=master)](https://travis-ci.org/behroozkhorashadi/remember-commands)
-[![Coverage Status](https://coveralls.io/repos/github/behroozkhorashadi/remember-commands/badge.svg?branch=master)](https://coveralls.io/github/behroozkhorashadi/remember-commands?branch=master)
-[![PyPI pyversions](https://img.shields.io/pypi/pyversions/ansicolortags.svg)](https://pypi.python.org/pypi/ansicolortags/)
-
-## remember-commands
+## remember3
 
 This simple python library scrapes your bash or zsh history file and generates
 a searchable cummulative history that is persisted, easily searchable,
@@ -81,4 +82,4 @@ An example is below:
 
 ### Using Remember
 
-./remember.py \[path\_to\_the\_save\_directory\] \[path\_to\_history
+./remember_main.py \[path\_to\_the\_save\_directory\] \[path\_to\_historyfile\]
