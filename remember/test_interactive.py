@@ -154,7 +154,7 @@ class Test(unittest.TestCase):
     def set_input(self, *args: str) -> None:
         self.original_raw_input = interactive.get_user_input
         # noinspection Mypy
-        interactive.get_user_input = InputMock(args) 
+        interactive.get_user_input = InputMock(args)  # type: ignore
 
     def reset_input(self) -> None:
         if self.original_raw_input:
