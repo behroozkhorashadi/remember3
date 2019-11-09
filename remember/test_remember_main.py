@@ -20,10 +20,8 @@ class TestMain(TestCase):
             assert remember_main.main().startswith("To many or too few args")
 
     @mock.patch('argparse.ArgumentParser.parse_args',
-                return_value=argparse.Namespace(json=True,
-                                                sql=False,
-                                                all=True,
-                                                startswith=True,
+                return_value=argparse.Namespace(all=True,
+                                                startswith=False,
                                                 execute=False,
                                                 save_dir='save_dir',
                                                 history_file_path=None,
@@ -47,5 +45,5 @@ class TestMain(TestCase):
                                                         history_file_path='hist',
                                                         query='query')):
             remember_main.main()
-            load_mock.assert_called_once()
             print_mock.assert_called_once()
+            load_mock.assert_called_once()

@@ -71,7 +71,6 @@ def add_save_dir(parser):
 def add_required_terms(parser, add_history_arg=False):
     add_save_dir(parser)
     if add_history_arg:
-        print('adding history')
         add_history_arg_to_parser(parser)
     parser.add_argument(
         "query",

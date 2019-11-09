@@ -17,7 +17,7 @@ class TestMain(TestCase):
                 return_value=argparse.Namespace(history_file_path='foo', save_dir='bar', json=True,
                                                 sql=False))
     def test_when_simple_args_generate_should_be_called_with_foo_bar_and_true(self, mock_args):
-        with mock.patch('remember.generate_store.generate_store_from_args') as generate_from_args:
+        with mock.patch('generate_store.generate_store_from_args') as generate_from_args:
             generate_store.main()
             generate_from_args.assert_called_once_with('foo', 'bar')
 
@@ -25,7 +25,7 @@ class TestMain(TestCase):
                 return_value=argparse.Namespace(history_file_path='foo', save_dir='bar', json=False,
                                                 sql=False,))
     def test_when_json_arg_false_generate_should_be_called_with_foo_bar_and_false(self, mock_args):
-        with mock.patch('remember.generate_store.generate_store_from_args') as generate_from_args:
+        with mock.patch('generate_store.generate_store_from_args') as generate_from_args:
             generate_store.main()
             generate_from_args.assert_called_once_with('foo', 'bar')
 

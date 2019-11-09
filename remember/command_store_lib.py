@@ -4,7 +4,7 @@ This Module contains the core logic for the remember functions.
 import sqlite3
 import os.path
 
-from .sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
+from remember.sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
     SIMPLE_SELECT_COMMAND_QUERY, DELETE_FROM_REMEMBER, GET_ROWID_FOR_COMMAND, \
     INSERT_INTO_REMEMBER_QUERY, UPDATE_COUNT_QUERY, TABLE_EXISTS_QUERY, TABLE_NAME
 
@@ -249,7 +249,7 @@ def get_file_path(directory_path):
 
 def _load_command_store_from_sql(db_file_name):
     if not os.path.exists(db_file_name):
-        return SqlCommandStore(':memory:')
+        raise Exception(f'db file: {db_file_name} does not exist')
     return SqlCommandStore(db_file_name)
 
 

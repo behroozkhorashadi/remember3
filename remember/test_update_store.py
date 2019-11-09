@@ -54,6 +54,7 @@ class TestMain(TestCase):
             command_executor_mock.delete_interaction.return_value = True
             update_store.main(command_executor_mock)
             print_commands.assert_called_once()
+            load_store_mock.assert_called()
 
     @mock.patch('remember.command_store_lib.load_command_store', return_value=CommandStoreTest())
     def test_setup_args_for_update_when_called_with_update_store_updated(self,

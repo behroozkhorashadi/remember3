@@ -214,8 +214,8 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertEqual('my_dir/path/' + command_store_lib.REMEMBER_DB_FILE_NAME, result)
 
     def test_load_file_when_file_not_there(self):
-        command_store = command_store_lib.load_command_store('randomNonExistantFile.someextension')
-        self.assertEqual(command_store.get_num_commands(), 0)
+        with self.assertRaises(Exception):
+            command_store_lib.load_command_store('randomNonExistantFile.someextension')
 
     def test_create_select_query_whenSingleTermNoSpecial_ShouldReturnBasicQuery(self):
         query = command_store_lib._create_command_search_select_query(['grep'], False, False, False)
