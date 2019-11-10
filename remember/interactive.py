@@ -12,19 +12,19 @@ class InteractiveCommandExecutor(object):
     def __init__(self, history_file_path: Optional[str] = None) -> None:
         self._history_file_path = history_file_path
 
-    def run(self, result: List) -> bool:
+    def run(self, result: List[command_store.Command]) -> bool:
         """Interactively enumerate a set of commands and pick one to run."""
         self._enumerate_commands(result)
         return self._select_command(result)
 
-    def _select_command(self, command_results: List) -> bool:
+    def _select_command(self, command_results: List[command_store.Command]) -> bool:
         user_input = get_user_input('Choose command by # or type anything else to quit: ')
         value = represents_int(user_input)
         if value and value <= len(command_results) > 0:
             command = command_results[value - 1]
             if self._history_file_path:
-                with open(self._history_file_path, "a") as myfile:
-                    myfile.write(command.get_unique_command_id() + '\n')
+                with open(self._history_file_path, "a") as my_file:
+                    my_file.write(command.get_unique_command_id() + '\n')
             subprocess.call(command.get_unique_command_id(), shell=True)
             return True
         else:
@@ -64,7 +64,9 @@ class InteractiveCommandExecutor(object):
                 if 0 < index <= len(commands):
                     delete_indicies.append(index)
                 else:
-                    print('Dropping invalid entry ' + index_str)
+                    print(f'{index} is not a valid index')
+        if not delete_indicies:
+            return False
         user_input = get_user_input('Delete ' + str(delete_indicies) + '? [y|n]')
         if user_input == 'y':
             for x in delete_indicies:

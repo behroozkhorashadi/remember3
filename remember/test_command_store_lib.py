@@ -1,7 +1,10 @@
 # flake8: noqa
-
+import io
 import os
+import sys
 import unittest
+
+from mock import patch, mock_open
 
 import remember.command_store_lib as command_store_lib
 
@@ -14,6 +17,34 @@ class TestCommandStoreLib(unittest.TestCase):
     def test_SqlCommandStore_isEmpty(self) -> None:
         command_store = command_store_lib.SqlCommandStore(':memory:')
         self.assertEqual(0, command_store.get_num_commands())
+
+    def test_readHistoryFile_whenFileRead_shouldFinishwithWriteEnd(self) -> None:
+        file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
+        with open(file_name, 'rb') as hist_file:
+            hist_file_content = hist_file.read()
+        store = command_store_lib.SqlCommandStore(':memory:')
+
+        with patch('remember.command_store_lib.open', mock_open(read_data=hist_file_content)) as m:
+            command_store_lib.read_history_file(store, file_name, "doesntmatter", None, True)
+        handle = m()
+        handle.write.assert_called_with(f'{command_store_lib.PROCESSED_TO_TAG}\n')
+        matches = store.search_commands(["add"], search_info=True)
+        self.assertIsNotNone(matches)
+        matches = store.search_commands(["add"], True)
+        self.assertTrue(len(matches) == 0)
+        matches = store.search_commands(["subl"], True)
+        self.assertTrue(len(matches) == 1)
+        store.close()
+
+    def test_readHistoryFile_whenDecodeError_shouldReturnOnly1(self) -> None:
+        file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
+        hist_file_content = b"\x81\nOnly Command\n"
+        store = command_store_lib.SqlCommandStore()
+
+        with patch('remember.command_store_lib.open', mock_open(read_data=hist_file_content)):
+            result = command_store_lib._get_unread_commands(file_name)
+        self.assertListEqual(['Only Command'], result)
+        store.close()
 
     def test_search_commands_with_sqlstore(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
@@ -188,7 +219,7 @@ class TestCommandStoreLib(unittest.TestCase):
 
     def test_ignoreRule_whenFileDoestExist_shouldNotCrash(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
-        store = command_store_lib.SqlCommandStore(':memory:')
+        store = command_store_lib.SqlCommandStore()
         command_store_lib.read_history_file(store, file_name, "doesntmatter",
                                             "test_files/fileNotthere.txt", False)
 
@@ -245,6 +276,23 @@ class TestCommandStoreLib(unittest.TestCase):
                    "command_info LIKE 'grep%' ORDER BY count_seen DESC, last_used DESC"
         self.assertEqual(expected, query)
 
+    def test_print_commands_whenSingleCommand_shouldPrint(self) -> None:
+        command_str = 'git diff HEAD^ src/b/FragmentOnlyDetector.java'
+        command = command_store_lib.Command(command_str, 1234.1234)
+        command_list = [command]
+        with patch('sys.stdout', new_callable=io.StringIO) as std_out_mock:
+            command_store_lib.print_commands(command_list)
+            expected = command_store_lib.create_indexed_highlighted_print_string(
+                1, command_str, command) + '\n'
+            self.assertEqual(expected, std_out_mock.getvalue())
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_print_commands_whenSingleCommandWithHighlights_shouldPrintWithHighlights(self) -> None:
+        command_str = 'git diff'
+        command = command_store_lib.Command(command_str, 1234.1234)
+        command_list = [command]
+        with patch('sys.stdout', new_callable=io.StringIO) as std_out_mock:
+            command_store_lib.print_commands(command_list, ['git'])
+            expected = command_store_lib.create_indexed_highlighted_print_string(
+                1, command_str, command) + '\n'
+            expected = command_store_lib.highlight_term_in_string(expected, 'git')
+            self.assertEqual(expected, std_out_mock.getvalue())

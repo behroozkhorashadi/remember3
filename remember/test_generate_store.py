@@ -44,10 +44,9 @@ class TestMain(TestCase):
         history_file_path = 'some/path'
         commands_file_path = os.path.join(TEST_FILES_PATH, FILE_STORE_NAME)
         with mock.patch('remember.command_store_lib.read_history_file') as read_file:
-            read_file.assert_not_called()
             generate_store.generate_store_from_args(history_file_path, TEST_FILES_PATH)
-            read_file.assert_called_once_with(mock.ANY, history_file_path, commands_file_path,
-                                              None)
+            read_file.assert_called_once_with(
+                mock.ANY, history_file_path, commands_file_path, None)
 
     def test_when_generate_from_args_should_use_ignore_file(self) -> None:
         tmp_holder = generate_store.IGNORE_RULE_FILE_NAME

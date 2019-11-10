@@ -255,7 +255,7 @@ def create_ignore_rule(src_file: str) -> IgnoreRules:
     return ignore_rules
 
 
-def print_commands(commands: List, highlighted_terms: Optional[List] = None) -> None:
+def print_commands(commands: List[Command], highlighted_terms: Optional[List] = None) -> None:
     """Pretty print the commands."""
     if highlighted_terms is None:
         highlighted_terms = []
@@ -273,12 +273,20 @@ def print_command(index: int, command: Command,
     command_str = command.get_unique_command_id()
     info_str = command.get_command_info()
     for term in highlighted_terms:
-        command_str = command_str.replace(term, bcolors.OKGREEN + term + bcolors.YELLOW)
-        info_str = info_str.replace(term, bcolors.OKGREEN + term + bcolors.YELLOW)
-    print(bcolors.HEADER + '(' + str(index) + '): ' + bcolors.YELLOW + command_str
-          + bcolors.OKBLUE + " --count:" + str(command.get_count_seen()) + bcolors.ENDC)
+        command_str = highlight_term_in_string(command_str, term)
+        info_str = highlight_term_in_string(info_str, term)
+    print(create_indexed_highlighted_print_string(index, command_str, command))
     if info_str:
         print(bcolors.FAIL + "Command context/info: " + info_str + bcolors.ENDC)
+
+
+def highlight_term_in_string(highlight_str: str, term: str) -> str:
+    return highlight_str.replace(term, f'{bcolors.OKGREEN}{term}{bcolors.YELLOW}')
+
+
+def create_indexed_highlighted_print_string(index: int, command_str: str, command: Command) -> str:
+    return f'{bcolors.HEADER}({index}): {bcolors.YELLOW}{command_str}{bcolors.OKBLUE} ' \
+           f'--count:{command.get_count_seen()}{bcolors.ENDC}'
 
 
 def _get_unread_commands(src_file: str) -> List:
@@ -302,13 +310,13 @@ def _get_unread_commands(src_file: str) -> List:
 
 def read_history_file(
         store: SqlCommandStore,
-        src_file: str,
+        history_file_path: str,
         store_file: str,
         ignore_file: Optional[str] = None,
         mark_read: bool = True) -> None:
     """Read in the history files."""
 
-    commands = _get_unread_commands(src_file)
+    commands = _get_unread_commands(history_file_path)
     output = []
     if ignore_file:
         ignore_rules = create_ignore_rule(ignore_file)
@@ -327,36 +335,35 @@ def read_history_file(
         with open(store_file, 'a') as command_filestore:
             for command_str in output:
                 command_filestore.write(command_str + '\n')
-        with open(src_file, "a") as myfile:
-            myfile.write(PROCESSED_TO_TAG + "\n")
+        with open(history_file_path, "a") as myfile:
+            myfile.write(f'{PROCESSED_TO_TAG}\n')
 
 
 def get_file_path(directory_path: str) -> str:
-    """Get the pickle file given the directory where the files is."""
+    """Get the sql db file given the directory where the files is."""
     return os.path.join(directory_path, REMEMBER_DB_FILE_NAME)
 
 
-def _load_command_store_from_sql(db_file_name: str) -> SqlCommandStore:
+def load_command_store(db_file_name: str) -> SqlCommandStore:
+    """Get the sql command store from the input file."""
     if not os.path.exists(db_file_name):
         raise Exception(f'db file: {db_file_name} does not exist')
     return SqlCommandStore(db_file_name)
 
 
-def load_command_store(file_name: str) -> SqlCommandStore:
-    """Get the command store from the input file."""
-    return _load_command_store_from_sql(file_name)
-
-
-def _init_tables_if_not_exists(db_conn: sqlite3.Connection) -> None:
-    if not check_table_exists(db_conn, TABLE_NAME):
+def _init_tables_if_not_exists(db_conn: sqlite3.Connection, table_name: str = TABLE_NAME) -> None:
+    """ Create the table if it doesn't exist in the DB."""
+    if not check_table_exists(db_conn, table_name):
         create_db_tables(db_conn)
 
 
 def _create_db_connection(db_file_path: str) -> sqlite3.Connection:
+    """Create and return the DB connection."""
     return sqlite3.connect(db_file_path)
 
 
 def check_table_exists(db_conn: sqlite3.Connection, table_name: str) -> bool:
+    """Check if the sql table exists."""
     c = db_conn.cursor()
     c.execute(TABLE_EXISTS_QUERY.format(table_name))
     db_conn.commit()
@@ -367,6 +374,7 @@ def check_table_exists(db_conn: sqlite3.Connection, table_name: str) -> bool:
 
 def _create_command_search_select_query(search_term: List, starts_with: bool, sort: bool,
                                         search_info: bool) -> str:
+    """Create the sql select query for search."""
     where_terms = []
     prepend_term = '' if starts_with else '%'
     for term in search_term:

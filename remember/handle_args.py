@@ -18,12 +18,6 @@ def setup_args_for_update() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def setup_for_migrate() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    add_save_dir(parser)
-    return parser.parse_args()
-
-
 def setup_args_for_search() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     add_search(parser)
