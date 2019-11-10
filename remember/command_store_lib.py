@@ -384,8 +384,5 @@ def _create_command_search_select_query(search_term: List, starts_with: bool, so
 def create_db_tables(db_conn: sqlite3.Connection) -> None:
     """ create a database connection to a SQLite database """
     print('Creating table')
-    try:
-        c = db_conn.cursor()
-        c.execute(SQL_CREATE_REMEMBER_TABLE)
-    except sqlite3.Error as e:
-        print(e)
+    c = db_conn.cursor()
+    c.execute(SQL_CREATE_REMEMBER_TABLE)

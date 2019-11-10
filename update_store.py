@@ -15,7 +15,6 @@ def main(command_executor: InteractiveCommandExecutor) -> None:
     search_results = store.search_commands(args.query, args.startswith, )
     end_time = time.time()
     print(f"Search time: {end_time - start_time} seconds")
-    print("Number of results found: " + str(len(search_results)))
     print(f"Number of results found: {str(len(search_results))}")
     if len(search_results) > args.max:
         print(f"Results truncated to the first: {args.max}")

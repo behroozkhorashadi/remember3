@@ -9,8 +9,8 @@
 ## remember3
 
 This simple python library scrapes your bash or zsh history file and generates
-a searchable cummulative history that is persisted, easily searchable,
-and runnable.
+a searchable cumulative history that is persisted, easily searchable,
+and runnable. This project is only python 3 compatible.
 
 ### Setup
 
@@ -45,7 +45,7 @@ in that file. This is done by running *generate\_store.py*.
 
 example:
 
-    generate_store.py [path_to_history_file] [path_to_a_save_directory]
+    python3 generate_store.py [path_to_history_file] [path_to_a_save_directory]
 
 The second argument is where you want all the meta data from the command
 organization to be stored. This is going to include a pickle file and

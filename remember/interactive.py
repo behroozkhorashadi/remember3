@@ -84,7 +84,6 @@ class InteractiveCommandExecutor(object):
 
 def get_user_input(msg: str) -> str:
     result = input(msg)
-    print(type(result))
     assert isinstance(result, str)
     return result
 
