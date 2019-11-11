@@ -1,6 +1,16 @@
 import argparse
 
 
+def setup_for_execute_last() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    add_save_dir(parser)
+    parser.add_argument(
+        "index",
+        type=int,
+        help="The index for the command to re-execute")
+    return parser.parse_args()
+
+
 def setup_args_for_update() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     add_search(parser)

@@ -16,6 +16,7 @@ import time
 PROCESSED_TO_TAG = '****** previous commands read *******'
 FILE_STORE_NAME = 'command_storage.txt'
 REMEMBER_DB_FILE_NAME = 'remember.db'
+DEFAULT_LAST_SAVE_FILE_NAME = 'last_saved_results.txt'
 # Table type enums
 JSON_STORE = 1
 PICKLE_STORE = 2
@@ -394,3 +395,14 @@ def create_db_tables(db_conn: sqlite3.Connection) -> None:
     print('Creating table')
     c = db_conn.cursor()
     c.execute(SQL_CREATE_REMEMBER_TABLE)
+
+
+def save_last_search(file_path: str, last_search_result: List[Command]) -> None:
+    with open(file_path, 'w') as file_handler:
+        for search_command in last_search_result:
+            file_handler.write('%s\n' % search_command.get_unique_command_id())
+
+
+def read_last_search(file_path: str) -> List[str]:
+    with open(file_path) as read_file:
+        return [x.strip() for x in read_file.readlines()]
