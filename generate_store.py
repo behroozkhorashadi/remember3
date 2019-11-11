@@ -1,5 +1,6 @@
 """ This module generates the store pickle file."""
 import os.path
+import time
 
 import remember.command_store_lib as com_lib
 from remember import handle_args
@@ -19,12 +20,10 @@ def generate_store_from_args(history_file_path: str, save_directory: str) -> Non
     store = com_lib.load_command_store(store_file_path)
     tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
     ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
-    com_lib.read_history_file(
-        store,
-        history_file_path,
-        commands_file_path,
-        ignore_rule_file)
     print('Read ' + history_file_path)
+    start_time = time.time()
+    com_lib.read_history_file(store, history_file_path, commands_file_path, ignore_rule_file)
+    print(f'Wrote to database in {time.time()-start_time} seconds')
 
 
 if __name__ == "__main__":

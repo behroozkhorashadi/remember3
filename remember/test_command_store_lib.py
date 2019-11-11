@@ -282,7 +282,7 @@ class TestCommandStoreLib(unittest.TestCase):
         command_list = [command]
         with patch('sys.stdout', new_callable=io.StringIO) as std_out_mock:
             command_store_lib.print_commands(command_list)
-            expected = command_store_lib.create_indexed_highlighted_print_string(
+            expected = command_store_lib._create_indexed_highlighted_print_string(
                 1, command_str, command) + '\n'
             self.assertEqual(expected, std_out_mock.getvalue())
 
@@ -292,7 +292,7 @@ class TestCommandStoreLib(unittest.TestCase):
         command_list = [command]
         with patch('sys.stdout', new_callable=io.StringIO) as std_out_mock:
             command_store_lib.print_commands(command_list, ['git'])
-            expected = command_store_lib.create_indexed_highlighted_print_string(
+            expected = command_store_lib._create_indexed_highlighted_print_string(
                 1, command_str, command) + '\n'
-            expected = command_store_lib.highlight_term_in_string(expected, 'git')
+            expected = command_store_lib._highlight_term_in_string(expected, 'git')
             self.assertEqual(expected, std_out_mock.getvalue())
