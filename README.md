@@ -84,3 +84,20 @@ An example is below:
 ### Using Remember
 
 ./remember_main.py \[path\_to\_the\_save\_directory\] \[path\_to\_historyfile\]
+
+I created some aliases to run this command
+
+    # Basic remember command
+    alias re='python3 ~/path_to_remember3_dir/remember_main.py  ~/path_to/save_dir ~/.histfile'
+    # Remember command that truncates to 10 entries
+    alias rt='python3 ~/path_to_remember3_dir/remember_main.py   ~/path_to/save_dir ~/.histfile -m 10'
+    # After running Remember command if you want to execute on of the results use this command
+    alias rex='python3 ~/path_to_remember3_dir/execute_last.py   ~/path_to/save_dir  '
+    # Remember and execute commend
+    alias rei='python3 ~/path_to_remember3_dir/remember_main.py -e   ~/path_to/save_dir  ~/.histfile'
+    # Truncated version of the above
+    alias rti='python3 ~/path_to_remember3_dir/remember_main.py -e   ~/path_to/save_dir  ~/.histfile -m 10'
+    # Update store command
+    alias ure='python3 ~/path_to_remember3_dir/update_store.py   ~/path_to/save_dir '
+    # Generate store from history file command
+    alias gen='python3 ~/path_to_remember3_dir/generate_store.py  ~/.histfile  ~/path_to/save_dir '
