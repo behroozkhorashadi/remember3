@@ -113,15 +113,6 @@ class SqlCommandStore(object):
         self._table_creation_verified = False
         self._db_conn: Optional[sqlite3.Connection] = None
 
-    def _get_initialized_db_connection(self) -> sqlite3.Connection:
-        if not self._db_conn:
-            self._db_conn = _create_db_connection(self._db_file)
-            assert self._db_conn
-            if not self._table_creation_verified:
-                _init_tables_if_not_exists(self._db_conn)
-                self._table_creation_verified = True
-        return self._db_conn
-
     def add_command(self, command: Command) -> None:
         row_id = self._get_rowid_of_command(command.get_unique_command_id())
         db_connection = self._get_initialized_db_connection()
@@ -133,15 +124,6 @@ class SqlCommandStore(object):
                 row_insert = (command.get_unique_command_id(), command.get_count_seen(),
                               command.last_used_time(), command.get_command_info())
                 cursor.execute(INSERT_INTO_REMEMBER_QUERY, row_insert)
-
-    def _get_rowid_of_command(self, command_str: str) -> Optional[int]:
-        cursor = self._get_initialized_db_connection().cursor()
-        cursor.execute(GET_ROWID_FOR_COMMAND, (command_str,))
-        data = cursor.fetchone()
-        if data is None:
-            return None
-        else:
-            return data[0]
 
     def delete_command(self, command_str: str) -> Optional[str]:
         db_conn = self._get_initialized_db_connection()
@@ -183,8 +165,8 @@ class SqlCommandStore(object):
                         sort: bool = True,
                         search_info: bool = False) -> List:
         """This method searches the command store for the command given."""
-        search_query = _create_command_search_select_query(search_terms, starts_with, sort,
-                                                           search_info)
+        search_query = _create_command_search_select_query(
+            search_terms, starts_with, sort, search_info)
         matches = []
         db_conn = self._get_initialized_db_connection()
         with db_conn:
@@ -200,6 +182,24 @@ class SqlCommandStore(object):
     def close(self) -> None:
         if self._db_conn:
             self._db_conn.close()
+
+    def _get_rowid_of_command(self, command_str: str) -> Optional[int]:
+        cursor = self._get_initialized_db_connection().cursor()
+        cursor.execute(GET_ROWID_FOR_COMMAND, (command_str,))
+        data = cursor.fetchone()
+        if data is None:
+            return None
+        else:
+            return data[0]
+
+    def _get_initialized_db_connection(self) -> sqlite3.Connection:
+        if not self._db_conn:
+            self._db_conn = _create_db_connection(self._db_file)
+            assert self._db_conn
+            if not self._table_creation_verified:
+                _init_tables_if_not_exists(self._db_conn)
+                self._table_creation_verified = True
+        return self._db_conn
 
 
 class IgnoreRules(object):
@@ -273,18 +273,18 @@ def print_command(index: int, command: Command,
     command_str = command.get_unique_command_id()
     info_str = command.get_command_info()
     for term in highlighted_terms:
-        command_str = highlight_term_in_string(command_str, term)
-        info_str = highlight_term_in_string(info_str, term)
-    print(create_indexed_highlighted_print_string(index, command_str, command))
+        command_str = _highlight_term_in_string(command_str, term)
+        info_str = _highlight_term_in_string(info_str, term)
+    print(_create_indexed_highlighted_print_string(index, command_str, command))
     if info_str:
         print(bcolors.FAIL + "Command context/info: " + info_str + bcolors.ENDC)
 
 
-def highlight_term_in_string(highlight_str: str, term: str) -> str:
+def _highlight_term_in_string(highlight_str: str, term: str) -> str:
     return highlight_str.replace(term, f'{bcolors.OKGREEN}{term}{bcolors.YELLOW}')
 
 
-def create_indexed_highlighted_print_string(index: int, command_str: str, command: Command) -> str:
+def _create_indexed_highlighted_print_string(index: int, command_str: str, command: Command) -> str:
     return f'{bcolors.HEADER}({index}): {bcolors.YELLOW}{command_str}{bcolors.OKBLUE} ' \
            f'--count:{command.get_count_seen()}{bcolors.ENDC}'
 
@@ -314,7 +314,7 @@ def read_history_file(
         store_file: str,
         ignore_file: Optional[str] = None,
         mark_read: bool = True) -> None:
-    """Read in the history files."""
+    """Read in the history files and write the new commands to the store."""
 
     commands = _get_unread_commands(history_file_path)
     output = []
@@ -353,8 +353,8 @@ def load_command_store(db_file_name: str) -> SqlCommandStore:
 
 def _init_tables_if_not_exists(db_conn: sqlite3.Connection, table_name: str = TABLE_NAME) -> None:
     """ Create the table if it doesn't exist in the DB."""
-    if not check_table_exists(db_conn, table_name):
-        create_db_tables(db_conn)
+    if not _check_table_exists(db_conn, table_name):
+        _create_db_tables(db_conn)
 
 
 def _create_db_connection(db_file_path: str) -> sqlite3.Connection:
@@ -362,7 +362,7 @@ def _create_db_connection(db_file_path: str) -> sqlite3.Connection:
     return sqlite3.connect(db_file_path)
 
 
-def check_table_exists(db_conn: sqlite3.Connection, table_name: str) -> bool:
+def _check_table_exists(db_conn: sqlite3.Connection, table_name: str) -> bool:
     """Check if the sql table exists."""
     c = db_conn.cursor()
     c.execute(TABLE_EXISTS_QUERY.format(table_name))
@@ -389,7 +389,7 @@ def _create_command_search_select_query(search_term: List, starts_with: bool, so
     return query
 
 
-def create_db_tables(db_conn: sqlite3.Connection) -> None:
+def _create_db_tables(db_conn: sqlite3.Connection) -> None:
     """ create a database connection to a SQLite database """
     print('Creating table')
     c = db_conn.cursor()
