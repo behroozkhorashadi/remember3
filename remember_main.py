@@ -3,6 +3,7 @@
 This module runs the remember portion of the command store interaction. It
 allows you to query all the stored commands and also delete them if you choose.
 """
+import os
 import time
 from typing import Optional, List
 
@@ -40,6 +41,8 @@ def run_remember_command(save_dir: str, history_file_path: str, query: List[str]
     if len(result) > max_return_count:
         print(f"Results truncated to the first: {max_return_count}")
     result = result[:max_return_count]
+    last_saved_file_path = os.path.join(save_dir, command_store.DEFAULT_LAST_SAVE_FILE_NAME)
+    command_store.save_last_search(last_saved_file_path, result)
     try:
         if execute:
             command_executor = InteractiveCommandExecutor(history_file_path)
