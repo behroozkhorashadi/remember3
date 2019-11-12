@@ -6,17 +6,17 @@ from unittest import TestCase
 import mock
 
 import update_store
-from remember.command_store_lib import SqlCommandStore
+from remember.command_store_lib import SqlCommandStore, Command
 from remember.interactive import InteractiveCommandExecutor
 
 
 class CommandStoreTest(SqlCommandStore):
     def search_commands(self,
-                        search_terms: List[str],
+                        search_terms: List,
                         starts_with: bool = False,
                         sort: bool = True,
-                        search_info: bool = False) -> List[str]:
-        return ['result not used']
+                        search_info: bool = False) -> List[Command]:
+        return [Command('result not used')]
 
 
 class TestMain(TestCase):

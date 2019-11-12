@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from remember import command_store_lib
+from remember import command_store_lib, interactive
 from remember.command_store_lib import read_last_search, DEFAULT_LAST_SAVE_FILE_NAME
 from remember.handle_args import setup_for_execute_last
 from remember.interactive import get_user_input
@@ -20,7 +20,7 @@ def main() -> None:
     if user_response:
         return
     subprocess.call(selected_command, shell=True)
-    print(selected_command)
+    interactive.write_to_hist_file(args.history_file_path, selected_command)
 
 
 if __name__ == "__main__":

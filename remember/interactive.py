@@ -23,8 +23,7 @@ class InteractiveCommandExecutor(object):
         if value and value <= len(command_results) > 0:
             command = command_results[value - 1]
             if self._history_file_path:
-                with open(self._history_file_path, "a") as my_file:
-                    my_file.write(command.get_unique_command_id() + '\n')
+                write_to_hist_file(self._history_file_path, command.get_unique_command_id())
             subprocess.call(command.get_unique_command_id(), shell=True)
             return True
         else:
@@ -95,3 +94,24 @@ def represents_int(value: str) -> Optional[int]:
         return int(value)
     except ValueError:
         return None
+
+
+def write_to_hist_file(history_file_path: str, command_to_write: str) -> None:
+    last_line = _get_last_line(history_file_path)
+    if last_line.startswith(":"):
+        incremented_time = _get_history_line_time(last_line) + 1
+        line_to_write = f': {incremented_time}:0;{command_to_write}'
+    else:
+        line_to_write = command_to_write
+    with open(history_file_path, "a") as history_file:
+        history_file.write(line_to_write + '\n')
+
+
+def _get_history_line_time(history_file_entry: str) -> int:
+    return int(history_file_entry.split(':')[1].strip())
+
+
+def _get_last_line(history_file_path: str) -> str:
+    with open(history_file_path, 'rb') as history_file:
+        last_line_binary = history_file.readlines()[-1]
+        return last_line_binary.decode("utf-8")
