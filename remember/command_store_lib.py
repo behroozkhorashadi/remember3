@@ -164,7 +164,7 @@ class SqlCommandStore(object):
                         search_terms: List,
                         starts_with: bool = False,
                         sort: bool = True,
-                        search_info: bool = False) -> List:
+                        search_info: bool = False) -> List[Command]:
         """This method searches the command store for the command given."""
         search_query = _create_command_search_select_query(
             search_terms, starts_with, sort, search_info)

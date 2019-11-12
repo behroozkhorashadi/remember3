@@ -144,10 +144,23 @@ class Test(unittest.TestCase):
         interactive_command = InteractiveCommandExecutor('SomeHistoryFile.txt')
         user_input = ['1']
         with patch('builtins.input', side_effect=user_input):
-            with patch('remember.interactive.open', mock_open()) as m:
+            with patch('remember.interactive.open', mock_open(read_data=b'some command')) as m:
                 self.assertTrue(interactive_command.run([command]))
                 handle = m()
                 handle.write.assert_called_with(command_str + '\n')
+
+    def test_run_whenCommandChosenInZsh_shouldWriteToHistFile(self) -> None:
+        command_str = "Command to write to history file"
+        command = Command(command_str)
+        interactive_command = InteractiveCommandExecutor('SomeHistoryFile.txt')
+        user_input = ['1']
+        hist_file_content = b': 1573535428:0;vim ~/.histfile\n'
+        expected = ': 1573535429:0;Command to write to history file\n'
+        with patch('builtins.input', side_effect=user_input):
+            with patch('remember.interactive.open', mock_open(read_data=hist_file_content)) as m:
+                self.assertTrue(interactive_command.run([command]))
+                handle = m()
+                handle.write.assert_called_with(expected)
 
     def subprocess_call_mock(self, command_str: str, expected: str, shell: Any) -> None:
         self.assertEqual(expected, command_str)

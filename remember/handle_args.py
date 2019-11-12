@@ -4,6 +4,7 @@ import argparse
 def setup_for_execute_last() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     add_save_dir(parser)
+    add_history_arg_to_parser(parser)
     parser.add_argument(
         "index",
         type=int,
