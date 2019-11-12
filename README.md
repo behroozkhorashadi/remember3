@@ -91,7 +91,7 @@ I created some aliases to run this command
     # Remember command that truncates to 10 entries
     alias rt='python3 ~/path_to_remember3_dir/remember_main.py   ~/path_to/save_dir ~/.histfile -m 10'
     # After running Remember command if you want to execute on of the results use this command
-    alias rex='python3 ~/path_to_remember3_dir/execute_last.py   ~/path_to/save_dir  '
+    alias rex='python3 ~/Personal/GitRepos/remember3/execute_last.py  ~/Google\ Drive/Nerd/state_files/rememberlogs/ ~/.histfile'
     # Remember and execute commend
     alias rei='python3 ~/path_to_remember3_dir/remember_main.py -e   ~/path_to/save_dir  ~/.histfile'
     # Truncated version of the above
