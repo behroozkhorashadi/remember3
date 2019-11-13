@@ -296,3 +296,17 @@ class TestCommandStoreLib(unittest.TestCase):
                 1, command_str, command) + '\n'
             expected = command_store_lib._highlight_term_in_string(expected, 'git')
             self.assertEqual(expected, std_out_mock.getvalue())
+
+    def test_rerank_whenMoreTermsInLater_shouldReorderCommands(self) -> None:
+        command_str = 'one two three'
+        c1 = command_store_lib.Command(command_str)
+        command_str = 'one match only'
+        c2 = command_store_lib.Command(command_str)
+        command_str = 'one two matches in this'
+        c3 = command_store_lib.Command(command_str)
+        command_str = 'two matches in this one also'
+        c4 = command_store_lib.Command(command_str)
+        matches = [c3, c2, c4,  c1]
+        reranked_result = command_store_lib._rerank_matches(matches, ['one', 'two', 'three'])
+        expected = [c1, c3, c4, c2]
+        self.assertListEqual(expected, reranked_result)

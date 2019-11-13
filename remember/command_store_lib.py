@@ -178,7 +178,7 @@ class SqlCommandStore(object):
                 command = Command(row[0], row[2], row[1])
                 command.set_command_info(row[3])
                 matches.append(command)
-        return matches
+        return _rerank_matches(matches, search_terms)
 
     def close(self) -> None:
         if self._db_conn:
@@ -279,6 +279,27 @@ def print_command(index: int, command: Command,
     print(_create_indexed_highlighted_print_string(index, command_str, command))
     if info_str:
         print(bcolors.FAIL + "Command context/info: " + info_str + bcolors.ENDC)
+
+
+def _rerank_matches(commands: List[Command], terms: List[str]) -> List[Command]:
+    results: List[List[Command]] = [[] for i in range(len(terms))]
+    for command in commands:
+        index = _num_terms_matched_in_command(command, terms)-1
+        results[index].append(command)
+    results.reverse()
+    reranked_commands = []
+    for command_list in results:
+        reranked_commands.extend(command_list)
+    return reranked_commands
+
+
+def _num_terms_matched_in_command(command: Command, terms: List[str]) -> int:
+    command_str = command.get_unique_command_id()
+    count = 0
+    for term in terms:
+        if term in command_str:
+            count += 1
+    return count
 
 
 def _highlight_term_in_string(highlight_str: str, term: str) -> str:
