@@ -15,3 +15,5 @@ UPDATE_COUNT_QUERY = ''' UPDATE remember
 SIMPLE_SELECT_COMMAND_QUERY = "SELECT rowid FROM remember WHERE full_command = ?"
 GET_ROWID_FOR_COMMAND = "SELECT rowid FROM remember WHERE full_command = ?"
 SEARCH_COMMANDS_QUERY = '''SELECT * FROM remember {}'''
+
+PRAGMA_STR = 'PRAGMA case_sensitive_like = true;'

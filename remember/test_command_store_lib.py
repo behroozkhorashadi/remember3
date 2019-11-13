@@ -58,6 +58,15 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertTrue(len(matches) == 1)
         store.close()
 
+    def test_search_commands_whenTermIsDifferentCase_shouldNotReturn(self) -> None:
+        store = command_store_lib.SqlCommandStore(':memory:')
+        store.add_command(command_store_lib.Command('Add'))
+        matches = store.search_commands(["add"])
+        self.assertEqual(0, len(matches))
+        matches = store.search_commands(["Add"])
+        self.assertEqual(1, len(matches))
+        store.close()
+
     def test_search_commands_sorted(self) -> None:
         command_store = command_store_lib.SqlCommandStore(':memory:')
         self.assertEqual(0, command_store.get_num_commands())

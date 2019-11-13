@@ -7,7 +7,7 @@ from typing import List, Optional, Set
 
 from remember.sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
     SIMPLE_SELECT_COMMAND_QUERY, DELETE_FROM_REMEMBER, GET_ROWID_FOR_COMMAND, \
-    INSERT_INTO_REMEMBER_QUERY, UPDATE_COUNT_QUERY, TABLE_EXISTS_QUERY, TABLE_NAME
+    INSERT_INTO_REMEMBER_QUERY, UPDATE_COUNT_QUERY, TABLE_EXISTS_QUERY, TABLE_NAME, PRAGMA_STR
 
 import re
 import shutil
@@ -197,6 +197,7 @@ class SqlCommandStore(object):
         if not self._db_conn:
             self._db_conn = _create_db_connection(self._db_file)
             assert self._db_conn
+            self._db_conn.execute(PRAGMA_STR)
             if not self._table_creation_verified:
                 _init_tables_if_not_exists(self._db_conn)
                 self._table_creation_verified = True
