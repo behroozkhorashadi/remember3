@@ -244,10 +244,6 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertEqual(command.get_primary_command(), 'git')
         self.assertEqual(command.get_command_args(), [])
         self.assertEqual(1234.1234, command.last_used_time())
-        command._increment_count()
-        self.assertEqual(1234.1234, command.last_used_time())
-        command._update_time(4321)
-        self.assertEqual(4321, command.last_used_time())
 
     def test_get_file_path(self) -> None:
         result = command_store_lib.get_file_path('my_dir/path')
@@ -319,3 +315,14 @@ class TestCommandStoreLib(unittest.TestCase):
         reranked_result = command_store_lib._rerank_matches(matches, ['one', 'two', 'three'])
         expected = [c1, c3, c4, c2]
         self.assertListEqual(expected, reranked_result)
+
+    def test_update_command_whenAddCommandToStore_shouldSetBackingStore(self) -> None:
+        store = command_store_lib.SqlCommandStore()
+        command = command_store_lib.Command('Some command')
+        store.add_command(command)
+        command_info_str = 'Some Info'
+        command.set_command_info(command_info_str)
+        store.update_command_info(command)
+        result = store.search_commands(['Some'])[0]
+        self.assertEqual(command.get_unique_command_id(), result.get_unique_command_id())
+        self.assertEqual(command_info_str, result.get_command_info())

@@ -5,6 +5,7 @@ import sys
 import unittest
 from functools import partial
 from typing import Any
+from unittest import mock
 
 from mock import patch, Mock, mock_open
 
@@ -19,20 +20,25 @@ sys.path.insert(0, TEST_PATH_DIR + '/../')
 class Test(unittest.TestCase):
     def test_command_update_info_should_correctly_set_info(self) -> None:
         interactive_command = InteractiveCommandExecutor()
+        store = command_store_lib.SqlCommandStore()
         command = Command("git rest --hard HEAD")
         command_info = 'command info'
         user_input = ['1', command_info]
+        store.add_command(command)
         with patch('builtins.input', side_effect=user_input):
-            interactive_command.command_info_interaction([command])
+            interactive_command.command_info_interaction([command], store)
         self.assertEqual(command.get_command_info(), command_info)
+        self.assertEqual(command_info, store.search_commands(['git'])[0].get_command_info())
 
     def test_command_update_info_should_fail_set_info_because_exit(self) -> None:
         interactive_command = InteractiveCommandExecutor()
         command = Command("git rest --hard HEAD")
         user_input = ['exit']
+        store = mock.Mock()
         with patch('builtins.input', side_effect=user_input):
-            self.assertFalse(interactive_command.command_info_interaction([command]))
+            self.assertFalse(interactive_command.command_info_interaction([command], store))
         self.assertEqual(command.get_command_info(), "")
+        store.update_command_info.assert_not_called()
 
     def test_delete_command_from_store_should_delete(self) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')

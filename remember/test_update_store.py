@@ -76,6 +76,5 @@ class TestMain(TestCase):
                                                         max=1000,
                                                         query='query')):
             command_executor_mock = mock.Mock()
-            command_executor_mock.set_command_info.return_value = True
             update_store.main(command_executor_mock)
             load_store_mock.assert_called()

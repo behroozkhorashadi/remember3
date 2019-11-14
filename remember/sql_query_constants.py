@@ -12,6 +12,9 @@ UPDATE_COUNT_QUERY = ''' UPDATE remember
                          SET count_seen = count_seen + 1,
                              last_used = ?
                          WHERE rowid = ?'''
+UPDATE_COMMAND_INFO_QUERY = ''' UPDATE remember
+                                 SET command_info = ?
+                                 WHERE full_command = ?'''
 SIMPLE_SELECT_COMMAND_QUERY = "SELECT rowid FROM remember WHERE full_command = ?"
 GET_ROWID_FOR_COMMAND = "SELECT rowid FROM remember WHERE full_command = ?"
 SEARCH_COMMANDS_QUERY = '''SELECT * FROM remember {}'''

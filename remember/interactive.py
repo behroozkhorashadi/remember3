@@ -29,7 +29,9 @@ class InteractiveCommandExecutor(object):
         else:
             return False
 
-    def command_info_interaction(self, command_results: List) -> bool:
+    def command_info_interaction(self,
+                                 command_results: List[command_store.Command],
+                                 store: SqlCommandStore) -> bool:
         """Interactively choose a command to set command info for."""
         self._enumerate_commands(command_results)
 
@@ -41,6 +43,7 @@ class InteractiveCommandExecutor(object):
             user_input = get_user_input('What would you like to add '
                                         'as searchable info for this command:\n')
             command.set_command_info(user_input)
+            store.update_command_info(command)
             command_store.print_command(1, command)
             return True
         else:

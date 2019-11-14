@@ -26,7 +26,7 @@ def main(command_executor: InteractiveCommandExecutor) -> None:
             command_executor.delete_interaction(store, search_results)
         if args.updateinfo:
             print("Updating Info mode")
-            command_executor.command_info_interaction(search_results)
+            command_executor.command_info_interaction(search_results, store)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,8 @@ from typing import List, Optional, Set
 
 from remember.sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
     SIMPLE_SELECT_COMMAND_QUERY, DELETE_FROM_REMEMBER, GET_ROWID_FOR_COMMAND, \
-    INSERT_INTO_REMEMBER_QUERY, UPDATE_COUNT_QUERY, TABLE_EXISTS_QUERY, TABLE_NAME, PRAGMA_STR
+    INSERT_INTO_REMEMBER_QUERY, UPDATE_COUNT_QUERY, TABLE_EXISTS_QUERY, TABLE_NAME, PRAGMA_STR, \
+    UPDATE_COMMAND_INFO_QUERY
 
 import re
 import shutil
@@ -39,7 +40,7 @@ class Command(object):
     """This class holds the basic pieces for a command."""
 
     def __init__(self, command_str: str = "", last_used: float = time.time(),
-                 count_seen: int = 1):
+                 count_seen: int = 1, command_info: str = ''):
         self._command_str = Command.get_curated_command(command_str)
         self._context_before: Set = set()
         self._context_after: Set = set()
@@ -47,7 +48,7 @@ class Command(object):
         self._parse_command(self._command_str)
         self._count_seen = count_seen
         self._last_used = last_used
-        self._command_info = ""
+        self._command_info = command_info
 
     def _parse_command(self, command: str) -> None:
         """Set the primary command."""
@@ -80,14 +81,6 @@ class Command(object):
     def get_count_seen(self) -> int:
         """Get the count seen."""
         return self._count_seen
-
-    def _increment_count(self) -> None:
-        """Increment the count of the command."""
-        self._count_seen += 1
-
-    def _update_time(self, updated_time: float) -> None:
-        """Update the time to this new time."""
-        self._last_used = updated_time
 
     def last_used_time(self) -> float:
         """Get the last used time in seconds from epoch"""
@@ -136,6 +129,13 @@ class SqlCommandStore(object):
                 return None
             return command_str
 
+    def update_command_info(self, command: Command) -> None:
+        db_connection = self._get_initialized_db_connection()
+        with db_connection:
+            cursor = db_connection.cursor()
+            cursor.execute(UPDATE_COMMAND_INFO_QUERY,
+                           (command.get_command_info(), command.get_unique_command_id(),))
+
     def has_command(self, command: Command) -> bool:
         """This method checks to see if a command is in the store. """
         return self.has_command_by_name(command.get_unique_command_id())
@@ -175,8 +175,7 @@ class SqlCommandStore(object):
             cursor.execute(search_query)
             rows = cursor.fetchall()
             for row in rows:
-                command = Command(row[0], row[2], row[1])
-                command.set_command_info(row[3])
+                command = Command(row[0], row[2], row[1], row[3])
                 matches.append(command)
         return _rerank_matches(matches, search_terms)
 
