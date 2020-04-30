@@ -1,7 +1,6 @@
 # flake8: noqa
 import io
 import os
-import sys
 import unittest
 
 from mock import patch, mock_open

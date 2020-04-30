@@ -18,10 +18,6 @@ PROCESSED_TO_TAG = '****** previous commands read *******'
 FILE_STORE_NAME = 'command_storage.txt'
 REMEMBER_DB_FILE_NAME = 'remember.db'
 DEFAULT_LAST_SAVE_FILE_NAME = 'last_saved_results.txt'
-# Table type enums
-JSON_STORE = 1
-PICKLE_STORE = 2
-SQL_STORE = 3
 
 
 class bcolors(object):
@@ -62,8 +58,6 @@ class Command(object):
 
     def get_command_args(self) -> List:
         """Get the input args for the command"""
-        # This is for backwards compatibility with earlier picked classes that
-        # didn't have this field.
         return self._command_args
 
     def get_command_info(self) -> str:

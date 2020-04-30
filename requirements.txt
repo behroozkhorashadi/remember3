@@ -1,9 +1,9 @@
 mock
-coverage==4.5.4
-pytest==5.2.2
+coverage==5.1
+pytest==5.4.1
 pytest-cov==2.8.1
-coveralls==1.8.2
-mypy==0.740
+coveralls==2.0.0
+mypy==0.770
 mypy-extensions==0.4.3
 flake8==3.7.9
-pyflakes==2.1.1
+pyflakes==2.2.0
