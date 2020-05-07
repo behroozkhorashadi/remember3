@@ -11,6 +11,8 @@ import remember.command_store_lib as command_store
 from remember.handle_args import setup_args_for_search
 from remember.interactive import InteractiveCommandExecutor
 
+IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
+
 
 def main() -> Optional[str]:
     """Entry point for this executable python module."""
