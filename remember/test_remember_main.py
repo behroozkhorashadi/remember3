@@ -31,11 +31,14 @@ class TestMain(TestCase):
             assert result.startswith("To many or too few args")
 
     @mock.patch('remember.command_store_lib.load_command_store', return_value=SINGLE_COMMAND_STORE)
-    def test_run_remember_command_whenSaveDir_shouldWriteLastCommand(self, load_mock: Mock) -> None:
+    @mock.patch('remember.command_store_lib.start_history_processing')
+    def test_run_remember_command_whenSaveDir_shouldWriteLastCommand(
+            self, process_mock: Mock, load_mock: Mock) -> None:
         with mock.patch('remember.command_store_lib.open', mock.mock_open()) as write_mock:
             remember_main.run_remember_command("test", 'test_hist', ['grep'], False, False,
                                                False, 10)
             load_mock.assert_called_once()
+            process_mock.assert_called_once()
             write_mock.assert_called_once_with(
                 os.path.join('test', DEFAULT_LAST_SAVE_FILE_NAME), 'w')
             handle = write_mock()
@@ -53,8 +56,9 @@ class TestMain(TestCase):
 
     @mock.patch('remember.command_store_lib.load_command_store', return_value=SqlCommandStore())
     @mock.patch('remember.command_store_lib.print_commands')
+    @mock.patch('remember.command_store_lib.start_history_processing')
     def test_setup_args_for_search_should_make_appropriate_calls_into_command_store_lib(
-            self, print_mock: mock.Mock, load_mock: mock.Mock) -> None:
+            self, process_mock: mock.Mock, print_mock: mock.Mock, load_mock: mock.Mock) -> None:
         with mock.patch('argparse.ArgumentParser.parse_args',
                         return_value=argparse.Namespace(json=True,
                                                         sql=False,
@@ -69,4 +73,5 @@ class TestMain(TestCase):
                 remember_main.main()
                 print_mock.assert_called_once()
                 load_mock.assert_called_once()
+                process_mock.assert_called_once()
                 write_mock.assert_called_once()
