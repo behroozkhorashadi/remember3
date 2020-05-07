@@ -2,6 +2,7 @@
 import io
 import os
 import unittest
+from unittest import mock
 
 from mock import patch, mock_open
 
@@ -9,7 +10,7 @@ import remember.command_store_lib as command_store_lib
 
 TEST_PATH_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_FILES_PATH = os.path.join(TEST_PATH_DIR, "test_files")
-
+FILE_STORE_NAME = 'command_storage.txt'
 
 class TestCommandStoreLib(unittest.TestCase):
 
@@ -41,7 +42,7 @@ class TestCommandStoreLib(unittest.TestCase):
         store = command_store_lib.SqlCommandStore()
 
         with patch('remember.command_store_lib.open', mock_open(read_data=hist_file_content)):
-            result = command_store_lib._get_unread_commands(file_name)
+            result = command_store_lib.get_unread_commands(file_name)
         self.assertListEqual(['Only Command'], result)
         store.close()
 
@@ -176,7 +177,7 @@ class TestCommandStoreLib(unittest.TestCase):
 
     def test_readUnprocessedLinesOnly(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_processed.txt")
-        unread_commands = command_store_lib._get_unread_commands(file_name)
+        unread_commands = command_store_lib.get_unread_commands(file_name)
         self.assertEqual("vim somefile.txt", unread_commands[0])
         self.assertEqual("git commit -a -m \"renamed directory.\"", unread_commands[1])
         self.assertEqual(2, len(unread_commands))
@@ -325,3 +326,12 @@ class TestCommandStoreLib(unittest.TestCase):
         result = store.search_commands(['Some'])[0]
         self.assertEqual(command.get_unique_command_id(), result.get_unique_command_id())
         self.assertEqual(command_info_str, result.get_command_info())
+
+    def test_when_generate_from_args_should_call_into_command_store_lib(self) -> None:
+        history_file_path = 'some/path'
+        commands_file_path = os.path.join(TEST_FILES_PATH, FILE_STORE_NAME)
+        with patch('remember.command_store_lib.get_unread_commands') as unread:
+            with patch('remember.command_store_lib.process_history_commands') as read_file:
+                command_store_lib.generate_store_from_args(history_file_path, TEST_FILES_PATH)
+                read_file.assert_called_once_with(
+                    mock.ANY, history_file_path, commands_file_path, None)

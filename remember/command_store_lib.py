@@ -18,6 +18,7 @@ PROCESSED_TO_TAG = '****** previous commands read *******'
 FILE_STORE_NAME = 'command_storage.txt'
 REMEMBER_DB_FILE_NAME = 'remember.db'
 DEFAULT_LAST_SAVE_FILE_NAME = 'last_saved_results.txt'
+IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
 
 
 class bcolors(object):
@@ -305,7 +306,7 @@ def _create_indexed_highlighted_print_string(index: int, command_str: str, comma
            f'--count:{command.get_count_seen()}{bcolors.ENDC}'
 
 
-def _get_unread_commands(src_file: str) -> List:
+def get_unread_commands(src_file: str) -> List:
     """Read the history file and get all the unread commands."""
     unprocessed_lines: List = []
     tmp_hist_file = src_file + '.tmp'
@@ -332,7 +333,19 @@ def read_history_file(
         mark_read: bool = True) -> None:
     """Read in the history files and write the new commands to the store."""
 
-    commands = _get_unread_commands(history_file_path)
+    commands = get_unread_commands(history_file_path)
+    process_history_commands(store, history_file_path, store_file, commands, ignore_file, mark_read)
+
+
+def process_history_commands(
+        store: SqlCommandStore,
+        history_file_path: str,
+        store_file: str,
+        commands: List,
+        ignore_file: Optional[str] = None,
+        mark_read: bool = True) -> None:
+    """Process the commands from the history file."""
+
     output = []
     if ignore_file:
         ignore_rules = create_ignore_rule(ignore_file)
@@ -421,3 +434,19 @@ def save_last_search(file_path: str, last_search_result: List[Command]) -> None:
 def read_last_search(file_path: str) -> List[str]:
     with open(file_path) as read_file:
         return [x.strip() for x in read_file.readlines()]
+
+
+def generate_store_from_args(
+        history_file_path: str, save_directory: str, threshold: int = 100) -> None:
+    store_file_path = get_file_path(save_directory)
+    commands_file_path = os.path.join(save_directory, FILE_STORE_NAME)
+    store = load_command_store(store_file_path)
+    tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
+    ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
+    print('Read ' + history_file_path)
+    start_time = time.time()
+    commands = get_unread_commands(history_file_path)
+    if len(commands) > threshold:
+        process_history_commands(
+            store, history_file_path, commands_file_path, commands, ignore_rule_file)
+    print(f'Wrote to database in {time.time()-start_time} seconds')
