@@ -14,9 +14,8 @@ import re
 import shutil
 import time
 
+
 PROCESSED_TO_TAG = '****** previous commands read *******'
-# TODO: remove this we don't really need it
-FILE_STORE_NAME = 'command_storage.txt'
 REMEMBER_DB_FILE_NAME = 'remember.db'
 DEFAULT_LAST_SAVE_FILE_NAME = 'last_saved_results.txt'
 IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
@@ -246,7 +245,6 @@ class HistoryProcessor(object):
         self._store = store
         self._threshold = threshold
         self._history_file_path = history_file_path
-        self._commands_file_path = os.path.join(save_directory, FILE_STORE_NAME)
         tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
         self._ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
 
@@ -258,7 +256,6 @@ class HistoryProcessor(object):
             process_history_commands(
                 self._store,
                 self._history_file_path,
-                self._commands_file_path,
                 commands,
                 self._ignore_rule_file)
             print(f'Wrote to database in {time.time()-start_time} seconds')
@@ -403,19 +400,17 @@ def get_unread_commands(src_file: str) -> List:
 def read_history_file(
         store: SqlCommandStore,
         history_file_path: str,
-        store_file: str,
         ignore_file: Optional[str] = None,
         mark_read: bool = True) -> None:
     """Read in the history files and write the new commands to the store."""
 
     commands = get_unread_commands(history_file_path)
-    process_history_commands(store, history_file_path, store_file, commands, ignore_file, mark_read)
+    process_history_commands(store, history_file_path, commands, ignore_file, mark_read)
 
 
 def process_history_commands(
         store: SqlCommandStore,
         history_file_path: str,
-        store_file: str,
         commands: List,
         ignore_file: Optional[str] = None,
         mark_read: bool = True) -> None:
@@ -436,10 +431,6 @@ def process_history_commands(
         store.add_command(command)
         output.append(command.get_unique_command_id())
     if mark_read:
-        # TODO get rid of this.
-        with open(store_file, 'a') as command_filestore:
-            for command_str in output:
-                command_filestore.write(command_str + '\n')
         with open(history_file_path, "a") as myfile:
             myfile.write(f'{PROCESSED_TO_TAG}\n')
 
@@ -516,13 +507,11 @@ def generate_store_from_args(
         history_file_path: str, save_directory: str, threshold: int = 100) -> None:
     store_file_path = get_file_path(save_directory)
     store = load_command_store(store_file_path)
-    commands_file_path = os.path.join(save_directory, FILE_STORE_NAME)
     tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
     ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
     update_store_from_history(history_file_path,
                               store,
                               ignore_rule_file,
-                              commands_file_path,
                               threshold)
 
 
@@ -539,12 +528,11 @@ def update_store_from_history(
         history_file_path: str,
         store: SqlCommandStore,
         ignore_rule_file: Optional[str],
-        commands_file_path: str,
         threshold: int = 100) -> None:
     print('Read ' + history_file_path)
     start_time = time.time()
     commands = get_unread_commands(history_file_path)
     if len(commands) > threshold:
         process_history_commands(
-            store, history_file_path, commands_file_path, commands, ignore_rule_file)
+            store, history_file_path, commands, ignore_rule_file)
     print(f'Wrote to database in {time.time()-start_time} seconds')
