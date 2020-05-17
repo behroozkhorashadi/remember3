@@ -3,8 +3,6 @@ This Module contains the core logic for the remember functions.
 """
 import sqlite3
 import os.path
-import threading
-from threading import Thread
 from typing import List, Optional, Set
 
 from remember.sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
@@ -34,6 +32,7 @@ class bcolors(object):
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
 
 class Command(object):
     """This class holds the basic pieces for a command."""
@@ -96,6 +95,7 @@ class Command(object):
             if m and len(curated_command) > m.start() + 1:
                 curated_command = curated_command[m.start() + 1:].strip()
         return curated_command
+
 
 # TODO: pull all the sql stuff out into its own file
 class SqlCommandStore(object):
@@ -250,7 +250,7 @@ class HistoryProcessor(object):
         tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
         self._ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
 
-    def process_history_file(self):
+    def process_history_file(self) -> None:
         print('Reading ' + self._history_file_path)
         start_time = time.time()
         commands = get_unread_commands(self._history_file_path)
@@ -436,7 +436,7 @@ def process_history_commands(
         store.add_command(command)
         output.append(command.get_unique_command_id())
     if mark_read:
-        #TODO get rid of this.
+        # TODO get rid of this.
         with open(store_file, 'a') as command_filestore:
             for command_str in output:
                 command_filestore.write(command_str + '\n')
@@ -519,14 +519,18 @@ def generate_store_from_args(
     commands_file_path = os.path.join(save_directory, FILE_STORE_NAME)
     tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
     ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
-    update_store_from_history(history_file_path, store, ignore_rule_file, commands_file_path, threshold)
+    update_store_from_history(history_file_path,
+                              store,
+                              ignore_rule_file,
+                              commands_file_path,
+                              threshold)
 
 
 def start_history_processing(
         store: SqlCommandStore,
         history_file_path: str,
         save_directory: str,
-        threshold: int = 100):
+        threshold: int = 100) -> None:
     history_processor = HistoryProcessor(store, history_file_path, save_directory, threshold)
     history_processor.process_history_file()
 
@@ -534,7 +538,7 @@ def start_history_processing(
 def update_store_from_history(
         history_file_path: str,
         store: SqlCommandStore,
-        ignore_rule_file: str,
+        ignore_rule_file: Optional[str],
         commands_file_path: str,
         threshold: int = 100) -> None:
     print('Read ' + history_file_path)
