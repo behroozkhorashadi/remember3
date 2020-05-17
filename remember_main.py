@@ -11,6 +11,8 @@ import remember.command_store_lib as command_store
 from remember.handle_args import setup_args_for_search
 from remember.interactive import InteractiveCommandExecutor
 
+IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
+
 
 def main() -> Optional[str]:
     """Entry point for this executable python module."""
@@ -32,6 +34,7 @@ def run_remember_command(save_dir: str, history_file_path: str, query: List[str]
                          max_return_count: int) -> Optional[str]:
     store_file_path = command_store.get_file_path(save_dir)
     store = command_store.load_command_store(store_file_path)
+    command_store.start_history_processing(store, history_file_path, save_dir, 1)
     print('Looking for all past commands with: ' + ", ".join(query))
     start_time = time.time()
     result = store.search_commands(query, search_starts_with, search_info=search_all)

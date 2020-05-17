@@ -3,6 +3,8 @@ This Module contains the core logic for the remember functions.
 """
 import sqlite3
 import os.path
+import threading
+from threading import Thread
 from typing import List, Optional, Set
 
 from remember.sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
@@ -15,9 +17,11 @@ import shutil
 import time
 
 PROCESSED_TO_TAG = '****** previous commands read *******'
+# TODO: remove this we don't really need it
 FILE_STORE_NAME = 'command_storage.txt'
 REMEMBER_DB_FILE_NAME = 'remember.db'
 DEFAULT_LAST_SAVE_FILE_NAME = 'last_saved_results.txt'
+IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
 
 
 class bcolors(object):
@@ -30,7 +34,6 @@ class bcolors(object):
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
 
 class Command(object):
     """This class holds the basic pieces for a command."""
@@ -94,7 +97,7 @@ class Command(object):
                 curated_command = curated_command[m.start() + 1:].strip()
         return curated_command
 
-
+# TODO: pull all the sql stuff out into its own file
 class SqlCommandStore(object):
     def __init__(self, db_file: str = ':memory:') -> None:
         self._db_file = db_file
@@ -233,6 +236,34 @@ class IgnoreRules(object):
         self._matches.add(command_str)
 
 
+class HistoryProcessor(object):
+    """This class helps process the history file into the store"""
+    def __init__(self,
+                 store: SqlCommandStore,
+                 history_file_path: str,
+                 save_directory: str,
+                 threshold: int = 100):
+        self._store = store
+        self._threshold = threshold
+        self._history_file_path = history_file_path
+        self._commands_file_path = os.path.join(save_directory, FILE_STORE_NAME)
+        tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
+        self._ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
+
+    def process_history_file(self):
+        print('Reading ' + self._history_file_path)
+        start_time = time.time()
+        commands = get_unread_commands(self._history_file_path)
+        if len(commands) > self._threshold:
+            process_history_commands(
+                self._store,
+                self._history_file_path,
+                self._commands_file_path,
+                commands,
+                self._ignore_rule_file)
+            print(f'Wrote to database in {time.time()-start_time} seconds')
+
+
 def create_ignore_rule(src_file: str) -> IgnoreRules:
     """Generate a IgnoreRules object from the input file."""
     ignore_rules = IgnoreRules()
@@ -305,12 +336,57 @@ def _create_indexed_highlighted_print_string(index: int, command_str: str, comma
            f'--count:{command.get_count_seen()}{bcolors.ENDC}'
 
 
-def _get_unread_commands(src_file: str) -> List:
+# def get_last_n_lines(file_name: str, max_read_lines: int = -1) -> List[str]:
+#     #TODO use this method instead of the less efficient one that read the whole file.
+#     # Create an empty list to keep the track of last N lines
+#     list_of_lines = []
+#     # Open file for reading in binary mode
+#     with open(file_name, 'rb') as read_obj:
+#         # Move the cursor to the end of the file
+#         read_obj.seek(0, os.SEEK_END)
+#         # Create a buffer to keep the last read line
+#         buffer = bytearray()
+#         # Get the current position of pointer i.e eof
+#         pointer_location = read_obj.tell()
+#         # Loop till pointer reaches the top of the file
+#         while pointer_location >= 0:
+#             # Move the file pointer to the location pointed by pointer_location
+#             read_obj.seek(pointer_location)
+#             # Shift pointer location by -1
+#             pointer_location = pointer_location -1
+#             # read that byte / character
+#             new_byte = read_obj.read(1)
+#             # If the read byte is new line character then it means one line is read
+#             if new_byte == b'\n':
+#                 # Save the line in list of lines
+#                 last_read_line = buffer.decode()[::-1]
+#                 if PROCESSED_TO_TAG in last_read_line:
+#                     return list(reversed(list_of_lines))
+#                 list_of_lines.append(buffer.decode()[::-1])
+#                 # If the size of list reaches N, then return the reversed list
+#                 if max_read_lines != -1 and len(list_of_lines) == max_read_lines:
+#                     return list(reversed(list_of_lines))
+#                 # Reinitialize the byte array to save next line
+#                 buffer = bytearray()
+#             else:
+#                 # If last read character is not eol then add it in buffer
+#                 buffer.extend(new_byte)
+#
+#         # As file is read completely, if there is still data in buffer, then its first line.
+#         if len(buffer) > 0:
+#             list_of_lines.append(buffer.decode()[::-1])
+#
+#     # return the reversed list
+#     return list(reversed(list_of_lines))
+
+
+def get_unread_commands(src_file: str) -> List:
     """Read the history file and get all the unread commands."""
     unprocessed_lines: List = []
     tmp_hist_file = src_file + '.tmp'
     shutil.copyfile(src_file, tmp_hist_file)
     try:
+
         for line in reversed(open(tmp_hist_file, 'rb').readlines()):
             try:
                 line_str = line.decode("utf-8")
@@ -332,7 +408,19 @@ def read_history_file(
         mark_read: bool = True) -> None:
     """Read in the history files and write the new commands to the store."""
 
-    commands = _get_unread_commands(history_file_path)
+    commands = get_unread_commands(history_file_path)
+    process_history_commands(store, history_file_path, store_file, commands, ignore_file, mark_read)
+
+
+def process_history_commands(
+        store: SqlCommandStore,
+        history_file_path: str,
+        store_file: str,
+        commands: List,
+        ignore_file: Optional[str] = None,
+        mark_read: bool = True) -> None:
+    """Process the commands from the history file."""
+
     output = []
     if ignore_file:
         ignore_rules = create_ignore_rule(ignore_file)
@@ -348,6 +436,7 @@ def read_history_file(
         store.add_command(command)
         output.append(command.get_unique_command_id())
     if mark_read:
+        #TODO get rid of this.
         with open(store_file, 'a') as command_filestore:
             for command_str in output:
                 command_filestore.write(command_str + '\n')
@@ -421,3 +510,37 @@ def save_last_search(file_path: str, last_search_result: List[Command]) -> None:
 def read_last_search(file_path: str) -> List[str]:
     with open(file_path) as read_file:
         return [x.strip() for x in read_file.readlines()]
+
+
+def generate_store_from_args(
+        history_file_path: str, save_directory: str, threshold: int = 100) -> None:
+    store_file_path = get_file_path(save_directory)
+    store = load_command_store(store_file_path)
+    commands_file_path = os.path.join(save_directory, FILE_STORE_NAME)
+    tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
+    ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
+    update_store_from_history(history_file_path, store, ignore_rule_file, commands_file_path, threshold)
+
+
+def start_history_processing(
+        store: SqlCommandStore,
+        history_file_path: str,
+        save_directory: str,
+        threshold: int = 100):
+    history_processor = HistoryProcessor(store, history_file_path, save_directory, threshold)
+    history_processor.process_history_file()
+
+
+def update_store_from_history(
+        history_file_path: str,
+        store: SqlCommandStore,
+        ignore_rule_file: str,
+        commands_file_path: str,
+        threshold: int = 100) -> None:
+    print('Read ' + history_file_path)
+    start_time = time.time()
+    commands = get_unread_commands(history_file_path)
+    if len(commands) > threshold:
+        process_history_commands(
+            store, history_file_path, commands_file_path, commands, ignore_rule_file)
+    print(f'Wrote to database in {time.time()-start_time} seconds')
