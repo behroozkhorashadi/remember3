@@ -5,7 +5,7 @@ import subprocess
 from typing import List, Optional
 
 import remember.command_store_lib as command_store
-from remember.command_store_lib import bcolors, SqlCommandStore
+from remember.command_store_lib import BColors, SqlCommandStore
 
 
 class InteractiveCommandExecutor(object):
@@ -81,9 +81,9 @@ class InteractiveCommandExecutor(object):
     @staticmethod
     def _enumerate_commands(command_results: List) -> None:
         for idx, command in enumerate(command_results):
-            print(bcolors.HEADER + "(" + str(idx + 1) + ") "
-                  + bcolors.OKGREEN + command.get_unique_command_id()
-                  + bcolors.ENDC)
+            print(BColors.HEADER + "(" + str(idx + 1) + ") "
+                  + BColors.OKGREEN + command.get_unique_command_id()
+                  + BColors.ENDC)
 
 
 def get_user_input(msg: str) -> str:

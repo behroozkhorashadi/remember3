@@ -7,7 +7,7 @@ import mock
 
 import generate_store
 from remember import command_store_lib
-from remember.command_store_lib import FILE_STORE_NAME, generate_store_from_args
+from remember.command_store_lib import generate_store_from_args
 
 TEST_PATH_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_FILES_PATH = os.path.join(TEST_PATH_DIR, "test_files")
@@ -44,14 +44,11 @@ class TestMain(TestCase):
         tmp_holder = generate_store.IGNORE_RULE_FILE_NAME
         generate_store.IGNORE_RULE_FILE_NAME = "test_ignore_rule.txt"
         history_file_path = 'some/path'
-        commands_file_path = os.path.join(TEST_FILES_PATH, FILE_STORE_NAME)
-        ignore_rule_file_path = os.path.join(TEST_FILES_PATH, generate_store.IGNORE_RULE_FILE_NAME)
         return_result_list = ["1", "2"]
         with mock.patch('remember.command_store_lib.process_history_commands') as read_file:
             with mock.patch('remember.command_store_lib.get_unread_commands',
                             return_value=return_result_list) as unread:
                 read_file.assert_not_called()
                 generate_store_from_args(history_file_path, TEST_FILES_PATH, 1)
-                read_file.assert_called_once_with(mock.ANY, history_file_path, commands_file_path,
-                                                  ['1', '2'], None)
+                read_file.assert_called_once_with(mock.ANY, history_file_path, ['1', '2'], None)
         generate_store.IGNORE_RULE_FILE_NAME = tmp_holder
