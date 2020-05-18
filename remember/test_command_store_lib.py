@@ -11,6 +11,7 @@ import remember.command_store_lib as command_store_lib
 TEST_PATH_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_FILES_PATH = os.path.join(TEST_PATH_DIR, "test_files")
 
+
 class TestCommandStoreLib(unittest.TestCase):
 
     def test_SqlCommandStore_isEmpty(self) -> None:
@@ -252,34 +253,6 @@ class TestCommandStoreLib(unittest.TestCase):
         with self.assertRaises(Exception):
             command_store_lib.load_command_store('randomNonExistantFile.someextension')
 
-    def test_create_select_query_whenSingleTermNoSpecial_ShouldReturnBasicQuery(self) -> None:
-        query = command_store_lib._create_command_search_select_query(['grep'], False, False, False)
-        expected = "SELECT * FROM remember WHERE full_command LIKE '%grep%'"
-        self.assertEqual(expected, query)
-
-    def test_create_select_query_whenSingleTermSorted_ShouldReturnBasicSortQuery(self) -> None:
-        query = command_store_lib._create_command_search_select_query(['grep'], False, True, False)
-        expected = "SELECT * FROM remember WHERE full_command LIKE '%grep%' ORDER BY " \
-                   "count_seen DESC, last_used DESC"
-        self.assertEqual(expected, query)
-
-    def test_create_select_query_whenSingleTermStartsWith_ShouldReturnStartsWithQuery(self) -> None:
-        query = command_store_lib._create_command_search_select_query(['grep'], True, False, False)
-        expected = "SELECT * FROM remember WHERE full_command LIKE 'grep%'"
-        self.assertEqual(expected, query)
-
-    def test_create_select_query_whenSingleTermStartsWithAndSort_ShouldReturnBothQuery(self) -> None:
-        query = command_store_lib._create_command_search_select_query(['grep'], True, True, False)
-        expected = "SELECT * FROM remember WHERE full_command LIKE 'grep%' " \
-                   "ORDER BY count_seen DESC, last_used DESC"
-        self.assertEqual(expected, query)
-
-    def test_create_select_query_whenSingleTermAll3_ShouldReturnAll3Query(self) -> None:
-        query = command_store_lib._create_command_search_select_query(['grep'], True, True, True)
-        expected = "SELECT * FROM remember WHERE full_command LIKE 'grep%' OR " \
-                   "command_info LIKE 'grep%' ORDER BY count_seen DESC, last_used DESC"
-        self.assertEqual(expected, query)
-
     def test_print_commands_whenSingleCommand_shouldPrint(self) -> None:
         command_str = 'git diff HEAD^ src/b/FragmentOnlyDetector.java'
         command = command_store_lib.Command(command_str, 1234.1234)
@@ -301,20 +274,6 @@ class TestCommandStoreLib(unittest.TestCase):
             expected = command_store_lib._highlight_term_in_string(expected, 'git')
             self.assertEqual(expected, std_out_mock.getvalue())
 
-    def test_rerank_whenMoreTermsInLater_shouldReorderCommands(self) -> None:
-        command_str = 'one two three'
-        c1 = command_store_lib.Command(command_str)
-        command_str = 'one match only'
-        c2 = command_store_lib.Command(command_str)
-        command_str = 'one two matches in this'
-        c3 = command_store_lib.Command(command_str)
-        command_str = 'two matches in this one also'
-        c4 = command_store_lib.Command(command_str)
-        matches = [c3, c2, c4,  c1]
-        reranked_result = command_store_lib._rerank_matches(matches, ['one', 'two', 'three'])
-        expected = [c1, c3, c4, c2]
-        self.assertListEqual(expected, reranked_result)
-
     def test_update_command_whenAddCommandToStore_shouldSetBackingStore(self) -> None:
         store = command_store_lib.SqlCommandStore()
         command = command_store_lib.Command('Some command')
@@ -329,7 +288,7 @@ class TestCommandStoreLib(unittest.TestCase):
     def test_when_generate_from_args_should_call_into_command_store_lib(self) -> None:
         history_file_path = 'some/path'
         return_result_list = [1, 2]
-        with patch('remember.command_store_lib.get_unread_commands', return_value=return_result_list) as unread:
+        with patch('remember.command_store_lib.get_unread_commands', return_value=return_result_list):
             with patch('remember.command_store_lib.process_history_commands') as read_file:
                 command_store_lib.generate_store_from_args(history_file_path, TEST_FILES_PATH, 1)
                 read_file.assert_called_once_with(mock.ANY, history_file_path, return_result_list, None)
