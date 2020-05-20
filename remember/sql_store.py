@@ -6,7 +6,7 @@ from typing import List, Set, Optional
 from remember.sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
     SIMPLE_SELECT_COMMAND_QUERY, DELETE_FROM_REMEMBER, GET_ROWID_FOR_COMMAND, \
     INSERT_INTO_REMEMBER_QUERY, UPDATE_COUNT_QUERY, TABLE_EXISTS_QUERY, TABLE_NAME, PRAGMA_STR, \
-    UPDATE_COMMAND_INFO_QUERY
+    UPDATE_COMMAND_INFO_QUERY, SQL_CREATE_DIR_TABLE
 
 
 class Command(object):
@@ -276,6 +276,9 @@ def _check_table_exists(db_conn: sqlite3.Connection, table_name: str) -> bool:
 
 def _create_db_tables(db_conn: sqlite3.Connection) -> None:
     """ create a database connection to a SQLite database """
-    print('Creating table')
+    print('Creating remember table')
     c = db_conn.cursor()
     c.execute(SQL_CREATE_REMEMBER_TABLE)
+    print('Creating directory table')
+    c = db_conn.cursor()
+    c.execute(SQL_CREATE_DIR_TABLE)
