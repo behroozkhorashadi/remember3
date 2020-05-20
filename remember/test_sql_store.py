@@ -47,3 +47,8 @@ class MyTestCase(unittest.TestCase):
         reranked_result = _rerank_matches(matches, ['one', 'two', 'three'])
         expected = [c1, c3, c4, c2]
         self.assertListEqual(expected, reranked_result)
+
+    def test_Command_whenCommandStringIsDot_shouldParseCorrectlyAndNotCrash(self) -> None:
+        command_str = '.'
+        c1 = Command(command_str)
+        c1.get_command_args()
