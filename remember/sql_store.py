@@ -27,8 +27,13 @@ class Command(object):
         """Set the primary command."""
         command_split = command.split(" ")
         if command_split[0] == ".":
-            self._primary_command = command_split[1]
-            self._command_args = command_split[2:]
+            if len(command_split) < 2:
+                # Corner case where dot is in history
+                self._primary_command = '.'
+                self._command_args = []
+            else:
+                self._primary_command = command_split[1]
+                self._command_args = command_split[2:]
         else:
             self._primary_command = command_split[0]
             self._command_args = command_split[1:]
