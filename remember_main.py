@@ -34,7 +34,7 @@ def run_remember_command(save_dir: str, history_file_path: str, query: List[str]
                          max_return_count: int) -> Optional[str]:
     store_file_path = command_store.get_file_path(save_dir)
     store = command_store.load_command_store(store_file_path)
-    command_store.start_history_processing(store, history_file_path, save_dir, 1)
+    command_store.start_history_processing(store, history_file_path, save_dir, 20)
     print('Looking for all past commands with: ' + ", ".join(query))
     start_time = time.time()
     result = store.search_commands(query, search_starts_with, search_info=search_all)
