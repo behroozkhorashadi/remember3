@@ -72,9 +72,6 @@ class Command(object):
     def set_command_info(self, info: str) -> None:
         self._command_info = info
 
-    def has_context(self) -> bool:
-        return self._directory_context is None
-
     @classmethod
     def get_curated_command(cls, command_str: str) -> str:
         """Given a command string curate the string and return."""
@@ -258,6 +255,9 @@ class IgnoreRules(object):
     def add_matches(self, command_str: str) -> None:
         """Add a exact matches with rule to ignore."""
         self._matches.add(command_str)
+
+    def size(self) -> int:
+        return len(self._matches)
 
 
 def _rerank_matches(commands: List[Command], terms: List[str]) -> List[Command]:

@@ -49,8 +49,8 @@ UPDATE_REMEMBER_COUNT_QUERY = f'''UPDATE {_REMEMBER}
                                      last_used = ?
                                  WHERE rowid = ?'''
 UPDATE_COMMAND_CONTEXT_COUNT_QUERY = f'''UPDATE {_COMMAND_CONTEXT}
-                                     SET num_occurrences = num_occurrences + 1,
-                                     WHERE rowid = ?'''
+                                     SET num_occurrences = num_occurrences + 1
+                                     WHERE rowid = ?;'''
 
 UPDATE_COUNT_AND_DIR_QUERY = f''' UPDATE {_REMEMBER}
                                      SET count_seen = count_seen + 1,

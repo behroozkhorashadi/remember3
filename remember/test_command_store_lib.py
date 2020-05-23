@@ -14,6 +14,10 @@ TEST_FILES_PATH = os.path.join(TEST_PATH_DIR, "test_files")
 
 
 class TestCommandStoreLib(unittest.TestCase):
+    def test_simple_assert_default_json_file_exists(self) -> None:
+        file_path = command_store_lib.get_file_path(TEST_FILES_PATH)
+        assert os.path.isfile(file_path)
+
     def test_readHistoryFile_whenFileRead_shouldFinishWithWriteEnd(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
         with open(file_name, 'rb') as hist_file:
@@ -216,6 +220,11 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertFalse(ignore_rule.is_match('git comit -a -m'))
         self.assertFalse(ignore_rule.is_match('git foos'))
 
+    def test_ignoreRule_whenFileNotAvailable_shouldCreateEmpty(self) -> None:
+        file_name = os.path.join(TEST_FILES_PATH, "notthere.txt")
+        ignore_rule = command_store_lib.create_ignore_rule(file_name)
+        self.assertEqual(0, ignore_rule.size())
+
     def test_ignoreRule_whenFileDoestExist_shouldNotCrash(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
         store = command_store_lib.SqlCommandStore()
@@ -301,6 +310,23 @@ class TestCommandStoreLib(unittest.TestCase):
         matches = store.search_commands(["add"], True)
         self.assertTrue(len(matches) == 0)
         matches = store.search_commands(["subl"], True)
+        self.assertTrue(len(matches) == 1)
+
+    def test_start_history_processing_whenProcessCustomHistoryFile_shouldCorrectlyAddToStore(self) -> None:
+        file_name = os.path.join(TEST_FILES_PATH, "custom_history_file.txt")
+        with open(file_name, 'rb') as hist_file:
+            hist_file_content = hist_file.read()
+        store = command_store_lib.SqlCommandStore(':memory:')
+
+        with patch('remember.command_store_lib.open', mock_open(read_data=hist_file_content)) as m:
+            command_store_lib.start_history_processing(store, file_name, 'doesntmatter', 1)
+        handle = m()
+        handle.write.assert_called_with(f'{command_store_lib.CUSTOM_HIST_HEAD}')
+        matches = store.search_commands(["add"], search_info=True)
+        self.assertIsNotNone(matches)
+        matches = store.search_commands(["add"], True)
+        self.assertTrue(len(matches) == 0)
+        matches = store.search_commands(["vim"], True)
         self.assertTrue(len(matches) == 1)
 
     def test_HistoryProcessor_when_process_history_fileOnProcessedFile_shouldNotRun(self) -> None:
