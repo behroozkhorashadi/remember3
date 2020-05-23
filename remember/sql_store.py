@@ -4,9 +4,10 @@ import re
 from typing import List, Set, Optional
 
 from remember.sql_query_constants import SEARCH_COMMANDS_QUERY, DELETE_FROM_REMEMBER, \
-    INSERT_INTO_REMEMBER_QUERY, UPDATE_COUNT_QUERY, TABLE_EXISTS_QUERY, PRAGMA_STR, \
+    INSERT_INTO_REMEMBER_QUERY, UPDATE_REMEMBER_COUNT_QUERY, TABLE_EXISTS_QUERY, PRAGMA_STR, \
     UPDATE_COMMAND_INFO_QUERY, CREATE_TABLES, GET_ROWID_FROM_DIRECTORIES, \
-    INSERT_INTO_DIRECTORIES_QUERY, INSERT_OR_IGNORE_COMMAND_CONTEXT, SIMPLE_SELECT_COMMAND_QUERY
+    INSERT_INTO_DIRECTORIES_QUERY, SIMPLE_SELECT_COMMAND_QUERY, \
+    GET_ROWID_FROM_COMMAND_CONTEXT, INSERT_INTO_COMMAND_CONTEXT, UPDATE_COMMAND_CONTEXT_COUNT_QUERY
 
 
 class Command(object):
@@ -72,7 +73,7 @@ class Command(object):
         self._command_info = info
 
     def has_context(self) -> bool:
-        return self._directory_context == None
+        return self._directory_context is None
 
     @classmethod
     def get_curated_command(cls, command_str: str) -> str:
@@ -96,10 +97,10 @@ class SqlCommandStore(object):
         db_connection = self._get_initialized_db_connection()
         with db_connection:
             command_rowid = self._create_or_update_command(command)
-            context_rowid = self._create_or_insert_directory_context(
-                command.get_directory_context())
-            cursor = db_connection.cursor()
-            cursor.execute(INSERT_OR_IGNORE_COMMAND_CONTEXT, (command_rowid, context_rowid))
+            if command.get_directory_context():
+                context_rowid = self._create_or_insert_directory_context(
+                    command.get_directory_context())
+                self._insert_into_command_context(command_rowid, context_rowid)
 
     def delete_command(self, command_str: str) -> Optional[str]:
         db_conn = self._get_initialized_db_connection()
@@ -181,7 +182,7 @@ class SqlCommandStore(object):
             cursor.execute(INSERT_INTO_REMEMBER_QUERY, row_insert_values)
             row_id = cursor.lastrowid
         else:
-            cursor.execute(UPDATE_COUNT_QUERY, (command.last_used_time(), row_id,))
+            cursor.execute(UPDATE_REMEMBER_COUNT_QUERY, (command.last_used_time(), row_id,))
         return row_id
 
     def _get_directory_context_row(self, dir_context: str) -> Optional[int]:
@@ -189,14 +190,10 @@ class SqlCommandStore(object):
         cursor = self._get_initialized_db_connection().cursor()
         cursor.execute(GET_ROWID_FROM_DIRECTORIES, (dir_context,))
         data = cursor.fetchone()
-        if data is None:
-            return None
-        else:
-            return data[0]
+        return data[0] if data else None
 
     def _create_or_insert_directory_context(self, directory_path: Optional[str]):
-        if not directory_path:
-            return None
+        assert(directory_path is not None)
         directory_row_id = self._get_directory_context_row(directory_path)
         if not directory_row_id:
             cursor = self._get_initialized_db_connection().cursor()
@@ -214,6 +211,18 @@ class SqlCommandStore(object):
                     _init_tables_if_not_exists(self._db_conn, table_name, create_statment)
                 self._table_creation_verified = True
         return self._db_conn
+
+    def _insert_into_command_context(self, command_rowid: int, context_rowid: int) -> None:
+        # This should just insert if not there and return the rowid
+        db_conn = self._get_initialized_db_connection()
+        cursor = db_conn.cursor()
+        cursor.execute(GET_ROWID_FROM_COMMAND_CONTEXT, (command_rowid, context_rowid,))
+        data = cursor.fetchone()
+        if data is None:
+            db_conn.cursor().execute(INSERT_INTO_COMMAND_CONTEXT, [command_rowid, context_rowid])
+        else:
+            db_conn.cursor().execute(UPDATE_COMMAND_CONTEXT_COUNT_QUERY, (data[0],))
+
 
 class IgnoreRules(object):
     """ This class holds the set of ignore rules for commands."""

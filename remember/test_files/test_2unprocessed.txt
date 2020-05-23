@@ -12,4 +12,3 @@ git diff HEAD^ lint/src/main/java/com/ubercab/rider/lint/RiderDialogFragmentOnly
 ****** previous commands read *******
 vim somefile.txt 
 git commit -a -m "renamed directory."
-****** previous commands read *******

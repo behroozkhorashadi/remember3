@@ -42,13 +42,13 @@ class TestMain(TestCase):
 
     def test_when_generate_from_args_should_use_ignore_file(self) -> None:
         tmp_holder = generate_store.IGNORE_RULE_FILE_NAME
-        generate_store.IGNORE_RULE_FILE_NAME = "test_ignore_rule.txt"
+        generate_store.IGNORE_RULE_FILE_NAME = "ignore_rules.txt"
         history_file_path = 'some/path'
         return_result_list = ["1", "2"]
         with mock.patch('remember.command_store_lib.process_history_commands') as read_file:
             with mock.patch('remember.command_store_lib.get_unread_commands',
                             return_value=return_result_list) as unread:
                 read_file.assert_not_called()
-                generate_store_from_args(history_file_path, TEST_FILES_PATH, 1)
+                generate_store_from_args(history_file_path, TEST_FILES_PATH)
                 read_file.assert_called_once_with(mock.ANY, history_file_path, ['1', '2'], None)
         generate_store.IGNORE_RULE_FILE_NAME = tmp_holder

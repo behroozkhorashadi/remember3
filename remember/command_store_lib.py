@@ -2,6 +2,7 @@
 This Module contains the core logic for the remember functions.
 """
 import os.path
+from enum import Enum
 from typing import List, Optional
 
 from remember.sql_store import SqlCommandStore, IgnoreRules, Command
@@ -40,6 +41,12 @@ class CommandAndContext(object):
     def directory_context(self) -> Optional[str]:
         return self._directory_context
 
+class HistoryFileType(Enum):
+    UNKNOWN = 0
+    STANDARD = 1
+    CUSTOM = 2
+
+
 
 class HistoryProcessor(object):
     """This class helps process the history file into the store"""
@@ -53,18 +60,35 @@ class HistoryProcessor(object):
         self._history_file_path = history_file_path
         tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
         self._ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
+        self._history_file_type = HistoryFileType.UNKNOWN
+        self._lines_processed = False
 
     def process_history_file(self) -> None:
         print('Reading ' + self._history_file_path)
         start_time = time.time()
-        commands = get_unread_commands(self._history_file_path)
+        lines = get_string_file_lines(self._history_file_path)
+        self._set_history_file_type(lines)
+        commands = get_unread_commands(lines, self._history_file_type)
         if len(commands) > self._threshold:
-            process_history_commands(
-                self._store,
-                self._history_file_path,
-                commands,
-                self._ignore_rule_file)
+            process_history_commands(self._store, commands, self._ignore_rule_file)
             print(f'Wrote to database in {time.time()-start_time} seconds')
+            self._lines_processed = True
+
+    def update_history_file(self) -> None:
+        if not self._lines_processed:
+            return
+        if self._history_file_type == HistoryFileType.STANDARD:
+            with open(self._history_file_path, "a") as myfile:
+                myfile.write(f'{PROCESSED_TO_TAG}\n')
+        else:
+            with open(self._history_file_path, 'w') as hist_file:
+                hist_file.write(CUSTOM_HIST_HEAD)
+
+    def _set_history_file_type(self, history_lines: List[str]):
+        if history_lines[0] == CUSTOM_HIST_HEAD:
+            self._history_file_type = HistoryFileType.CUSTOM
+            return
+        self._history_file_type = HistoryFileType.STANDARD
 
 
 def create_ignore_rule(src_file: str) -> IgnoreRules:
@@ -161,27 +185,31 @@ def _create_indexed_highlighted_print_string(index: int, command_str: str, comma
 #     # return the reversed list
 #     return list(reversed(list_of_lines))
 
-
-def get_unread_commands(src_file: str) -> List[CommandAndContext]:
-    """Read the history file and get all the unread commands."""
+def get_string_file_lines(src_file: str) -> List[str]:
     unprocessed_lines: List = []
     tmp_hist_file = src_file + '.tmp'
     shutil.copyfile(src_file, tmp_hist_file)
     history_lines = open(tmp_hist_file, 'rb').readlines()
-    try:
-        line1 = _try_decode_line(history_lines[0])
-        if line1 == CUSTOM_HIST_HEAD:
-            return _get_unread_commands_custom_file(history_lines[1:])
-        for line in reversed(history_lines):
-            line_str = _try_decode_line(line)
-            if not line_str:
-                continue
-            if PROCESSED_TO_TAG in line_str:
-                return list(reversed(unprocessed_lines))
-            unprocessed_lines.append(CommandAndContext(line_str.strip()))
-    finally:
-        os.remove(tmp_hist_file)
+    for line in history_lines:
+        line_str = _try_decode_line(line)
+        if line_str:
+            unprocessed_lines.append(line_str)
+    os.remove(tmp_hist_file)
     return unprocessed_lines
+
+
+def get_unread_commands(history_lines: List[str],
+                        file_type: HistoryFileType) -> List[CommandAndContext]:
+    assert(file_type != HistoryFileType.UNKNOWN)
+    """Read the history file and get all the unread commands."""
+    unprocessed_commands: List[CommandAndContext] = []
+    if file_type == HistoryFileType.CUSTOM:
+        return _get_unread_commands_custom_file(history_lines[1:])
+    for line in reversed(history_lines):
+        if PROCESSED_TO_TAG in line:
+            return list(reversed(unprocessed_commands))
+        unprocessed_commands.append(CommandAndContext(line.strip()))
+    return unprocessed_commands
 
 
 def _try_decode_line(line: bytes) -> Optional[str]:
@@ -191,34 +219,15 @@ def _try_decode_line(line: bytes) -> Optional[str]:
         return None
 
 
-def _get_unread_commands_custom_file(file_lines: List[bytes]) -> List[CommandAndContext]:
-    decoded_lines = []
-    for line in file_lines:
-        try:
-            decoded_lines.append(line.decode("utf-8"))
-        except UnicodeDecodeError:
-            continue
+def _get_unread_commands_custom_file(file_lines: List[str]) -> List[CommandAndContext]:
     return [CommandAndContext(y[1].strip(), y[0]) for y in
-            [x.split(CUSTOM_HIST_SEPARATOR) for x in decoded_lines]]
-
-
-def read_history_file(
-        store: SqlCommandStore,
-        history_file_path: str,
-        ignore_file: Optional[str] = None,
-        mark_read: bool = True) -> None:
-    """Read in the history files and write the new commands to the store."""
-
-    commands = get_unread_commands(history_file_path)
-    process_history_commands(store, history_file_path, commands, ignore_file, mark_read)
+            [x.split(CUSTOM_HIST_SEPARATOR) for x in file_lines]]
 
 
 def process_history_commands(
         store: SqlCommandStore,
-        history_file_path: str,
         commands: List[CommandAndContext],
-        ignore_file: Optional[str] = None,
-        mark_read: bool = True) -> None:
+        ignore_file: Optional[str] = None) -> None:
     """Process the commands from the history file."""
 
     output = []
@@ -228,20 +237,15 @@ def process_history_commands(
         ignore_rules = IgnoreRules()
     # get the max count
     current_time = time.time()
-    for command_n_context in commands:
+    for command_and_context in commands:
         current_time += 1
-        command = Command(command_str=command_n_context.command_line(),
+        command = Command(command_str=command_and_context.command_line(),
                           last_used=current_time,
-                          directory_context=command_n_context.directory_context())
+                          directory_context=command_and_context.directory_context())
         if ignore_rules.is_match(command.get_unique_command_id()):
             continue
         store.add_command(command)
         output.append(command.get_unique_command_id())
-    if mark_read:
-        with open(history_file_path, "a") as myfile:
-            myfile.write(f'{PROCESSED_TO_TAG}\n')
-        # with open(src_file, 'w') as hist_file:
-        #     hist_file.write(CUSTOM_HIST_HEAD)
 
 
 def get_file_path(directory_path: str) -> str:
@@ -267,17 +271,9 @@ def read_last_search(file_path: str) -> List[str]:
         return [x.strip() for x in read_file.readlines()]
 
 
-def generate_store_from_args(
-        history_file_path: str, save_directory: str, threshold: int = 100) -> None:
-    store_file_path = get_file_path(save_directory)
-    store = load_command_store(store_file_path)
-    tmp_file_path = os.path.join(save_directory, IGNORE_RULE_FILE_NAME)
-    ignore_rule_file = tmp_file_path if os.path.isfile(tmp_file_path) else None
-    update_store_from_history(history_file_path,
-                              store,
-                              ignore_rule_file,
-                              threshold)
-
+def generate_store_from_args(history_file_path: str, save_directory: str) -> None:
+    store = load_command_store(get_file_path(save_directory))
+    start_history_processing(store, history_file_path, save_directory, 1)
 
 def start_history_processing(
         store: SqlCommandStore,
@@ -286,17 +282,4 @@ def start_history_processing(
         threshold: int = 100) -> None:
     history_processor = HistoryProcessor(store, history_file_path, save_directory, threshold)
     history_processor.process_history_file()
-
-
-def update_store_from_history(
-        history_file_path: str,
-        store: SqlCommandStore,
-        ignore_rule_file: Optional[str],
-        threshold: int = 100) -> None:
-    print('Read ' + history_file_path)
-    start_time = time.time()
-    commands = get_unread_commands(history_file_path)
-    if len(commands) > threshold:
-        process_history_commands(
-            store, history_file_path, commands, ignore_rule_file)
-    print(f'Wrote to database in {time.time()-start_time} seconds')
+    history_processor.update_history_file()
