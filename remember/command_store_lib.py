@@ -11,6 +11,8 @@ import time
 
 
 PROCESSED_TO_TAG = '****** previous commands read *******'
+CUSTOM_HIST_HEAD = '## remember command custom history file ##\n'
+CUSTOM_HIST_SEPARATOR = '<<!>>'
 REMEMBER_DB_FILE_NAME = 'remember.db'
 DEFAULT_LAST_SAVE_FILE_NAME = 'last_saved_results.txt'
 IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
@@ -26,6 +28,17 @@ class BColors(object):
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+class CommandAndContext(object):
+    def __init__(self, command_line: str, directory_context: str=None):
+        self._command_line = command_line
+        self._directory_context = directory_context
+
+    def command_line(self) -> str:
+        return self._command_line
+
+    def directory_context(self) -> Optional[str]:
+        return self._directory_context
 
 
 class HistoryProcessor(object):
@@ -149,24 +162,44 @@ def _create_indexed_highlighted_print_string(index: int, command_str: str, comma
 #     return list(reversed(list_of_lines))
 
 
-def get_unread_commands(src_file: str) -> List:
+def get_unread_commands(src_file: str) -> List[CommandAndContext]:
     """Read the history file and get all the unread commands."""
     unprocessed_lines: List = []
     tmp_hist_file = src_file + '.tmp'
     shutil.copyfile(src_file, tmp_hist_file)
+    history_lines = open(tmp_hist_file, 'rb').readlines()
     try:
-
-        for line in reversed(open(tmp_hist_file, 'rb').readlines()):
-            try:
-                line_str = line.decode("utf-8")
-            except UnicodeDecodeError:
+        line1 = _try_decode_line(history_lines[0])
+        if line1 == CUSTOM_HIST_HEAD:
+            return _get_unread_commands_custom_file(history_lines[1:])
+        for line in reversed(history_lines):
+            line_str = _try_decode_line(line)
+            if not line_str:
                 continue
             if PROCESSED_TO_TAG in line_str:
                 return list(reversed(unprocessed_lines))
-            unprocessed_lines.append(line_str.strip())
+            unprocessed_lines.append(CommandAndContext(line_str.strip()))
     finally:
         os.remove(tmp_hist_file)
     return unprocessed_lines
+
+
+def _try_decode_line(line: bytes) -> Optional[str]:
+    try:
+        return line.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
+def _get_unread_commands_custom_file(file_lines: List[bytes]) -> List[CommandAndContext]:
+    decoded_lines = []
+    for line in file_lines:
+        try:
+            decoded_lines.append(line.decode("utf-8"))
+        except UnicodeDecodeError:
+            continue
+    return [CommandAndContext(y[1].strip(), y[0]) for y in
+            [x.split(CUSTOM_HIST_SEPARATOR) for x in decoded_lines]]
 
 
 def read_history_file(
@@ -183,7 +216,7 @@ def read_history_file(
 def process_history_commands(
         store: SqlCommandStore,
         history_file_path: str,
-        commands: List,
+        commands: List[CommandAndContext],
         ignore_file: Optional[str] = None,
         mark_read: bool = True) -> None:
     """Process the commands from the history file."""
@@ -195,9 +228,11 @@ def process_history_commands(
         ignore_rules = IgnoreRules()
     # get the max count
     current_time = time.time()
-    for line in commands:
+    for command_n_context in commands:
         current_time += 1
-        command = Command(line, current_time)
+        command = Command(command_str=command_n_context.command_line(),
+                          last_used=current_time,
+                          directory_context=command_n_context.directory_context())
         if ignore_rules.is_match(command.get_unique_command_id()):
             continue
         store.add_command(command)
@@ -205,6 +240,8 @@ def process_history_commands(
     if mark_read:
         with open(history_file_path, "a") as myfile:
             myfile.write(f'{PROCESSED_TO_TAG}\n')
+        # with open(src_file, 'w') as hist_file:
+        #     hist_file.write(CUSTOM_HIST_HEAD)
 
 
 def get_file_path(directory_path: str) -> str:

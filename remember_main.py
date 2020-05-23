@@ -46,15 +46,12 @@ def run_remember_command(save_dir: str, history_file_path: str, query: List[str]
     result = result[:max_return_count]
     last_saved_file_path = os.path.join(save_dir, command_store.DEFAULT_LAST_SAVE_FILE_NAME)
     command_store.save_last_search(last_saved_file_path, result)
-    try:
-        if execute:
-            command_executor = InteractiveCommandExecutor(history_file_path)
-            if not command_executor.run(result):
-                return 'Exit'
-        command_store.print_commands(result, query)
-        return None
-    finally:
-        store.close()
+    if execute:
+        command_executor = InteractiveCommandExecutor(history_file_path)
+        if not command_executor.run(result):
+            return 'Exit'
+    command_store.print_commands(result, query)
+    return None
 
 
 if __name__ == "__main__":
