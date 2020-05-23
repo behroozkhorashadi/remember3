@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest import mock
 
-from mock import patch, mock_open
+from mock import patch, mock_open, Mock
 
 import remember.command_store_lib as command_store_lib
 from remember.sql_store import SqlCommandStore
@@ -275,13 +275,16 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertEqual(command.get_unique_command_id(), result.get_unique_command_id())
         self.assertEqual(command_info_str, result.get_command_info())
 
-    def test_when_generate_from_args_should_call_into_command_store_lib(self) -> None:
+    @mock.patch('remember.command_store_lib.HistoryProcessor.update_history_file')
+    def test_when_generate_from_args_should_call_into_command_store_lib(
+            self, mock_read_file: Mock) -> None:
         history_file_path = 'some/path'
         return_result_list = ['1', '2']
+        store = command_store_lib.SqlCommandStore()
         with patch('remember.command_store_lib.get_string_file_lines', return_value=return_result_list):
-            with patch('remember.command_store_lib.HistoryProcessor.update_history_file') as read_file:
+            with patch('remember.command_store_lib.load_command_store', return_value=store) :
                 command_store_lib.generate_store_from_args(history_file_path, TEST_FILES_PATH)
-                read_file.assert_called_once_with()
+                mock_read_file.assert_called_once_with()
 
     def test_start_history_processing_when_process_history_file_shouldCorrectlyAddToStore(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
