@@ -1,11 +1,13 @@
 """
 This module handles the command store interactive mode.
 """
+import os
 import subprocess
 from typing import List, Optional
 
 import remember.command_store_lib as command_store
 from remember.command_store_lib import BColors, SqlCommandStore
+from remember.sql_store import Command
 
 
 class InteractiveCommandExecutor(object):
@@ -122,3 +124,23 @@ def _get_last_line(history_file_path: str) -> str:
     with open(history_file_path, 'rb') as history_file:
         last_line_binary = history_file.readlines()[-1]
         return last_line_binary.decode("utf-8")
+
+
+def display_and_interact_results(result: List[Command],
+                                 max_return_count: int,
+                                 save_dir: str,
+                                 history_file_path: str,
+                                 query: Optional[List[str]],
+                                 execute: bool) -> Optional[str]:
+    print(f"Number of results found: {str(len(result))}")
+    if len(result) > max_return_count:
+        print(f"Results truncated to the first: {max_return_count}")
+        result = result[:max_return_count]
+    last_saved_file_path = os.path.join(save_dir, command_store.DEFAULT_LAST_SAVE_FILE_NAME)
+    command_store.save_last_search(last_saved_file_path, result)
+    if execute:
+        command_executor = load_user_interactor(history_file_path)
+        if not command_executor.run(result):
+            return 'Exit'
+    command_store.print_commands(result, query)
+    return None

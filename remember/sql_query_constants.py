@@ -6,14 +6,17 @@ _COMMAND_CONTEXT = 'command_context'
 SQL_CREATE_REMEMBER_TABLE = \
     f"""
 CREATE TABLE IF NOT EXISTS {_REMEMBER}(
-    full_command TEXT PRIMARY KEY ,
+    rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_command TEXT UNIQUE ,
     count_seen INTEGER NOT NULL ,
     last_used REAL NOT NULL ,
     command_info TEXT);"""
 
 SQL_CREATE_DIR_TABLE = \
     f"""
-CREATE TABLE IF NOT EXISTS {_DIRECTORIES} (dir_path TEXT PRIMARY_KEY); """
+CREATE TABLE IF NOT EXISTS {_DIRECTORIES} (
+  rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+  dir_path TEXT UNIQUE); """
 
 CREATE_CONTEXT_COMMAND_TABLE = \
     f"""
@@ -22,8 +25,8 @@ CREATE TABLE IF NOT EXISTS {_COMMAND_CONTEXT} (
   context_id INTEGER NOT NULL,
   num_occurrences INTEGER NOT NULL,
   UNIQUE(command_id, context_id),
-  FOREIGN KEY(command_id) REFERENCES {_REMEMBER}(rowid),
-  FOREIGN KEY(context_id) REFERENCES {_DIRECTORIES}(rowid)
+  FOREIGN KEY(command_id) REFERENCES {_REMEMBER}(rowid) ON DELETE CASCADE,
+  FOREIGN KEY(context_id) REFERENCES {_DIRECTORIES}(rowid) ON DELETE CASCADE
 );"""
 
 CREATE_TABLES = {_REMEMBER: SQL_CREATE_REMEMBER_TABLE,
@@ -37,7 +40,7 @@ INSERT_INTO_REMEMBER_QUERY = f''' INSERT INTO {_REMEMBER}(
                                     last_used,
                                     command_info) VALUES(?,?,?,?) '''
 
-INSERT_INTO_DIRECTORIES_QUERY = f'''INSERT INTO {_DIRECTORIES} VALUES(?)'''
+INSERT_INTO_DIRECTORIES_QUERY = f'''INSERT INTO {_DIRECTORIES}(dir_path) VALUES(?)'''
 INSERT_INTO_COMMAND_CONTEXT = f'INSERT INTO {_COMMAND_CONTEXT} VALUES(?,?,1);'
 
 # Delete statements
@@ -67,7 +70,13 @@ SELECT rowid
 FROM {_COMMAND_CONTEXT}
 WHERE command_id = ? AND context_id = ?"""
 
-SEARCH_COMMANDS_QUERY = 'SELECT * FROM ' + _REMEMBER + ' {}'
+SEARCH_COMMANDS_QUERY = """
+SELECT 
+    full_command,
+    count_seen,
+    last_used,
+    command_info    
+FROM """ + _REMEMBER + ' {} '
 
 TABLE_EXISTS_QUERY = ''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{}' '''
 
@@ -76,8 +85,8 @@ SELECT_CONTEXT_COMMANDS = \
     """
     SELECT
       remember.full_command,
-      remember.count_seen,
       remember.last_used,
+      command_context.num_occurrences,
       remember.command_info,
       directories.dir_path as dir_path
     FROM
@@ -93,3 +102,4 @@ SELECT_CONTEXT_COMMANDS = \
     """
 
 PRAGMA_STR = 'PRAGMA case_sensitive_like = true;'
+FOREIGN_KEY_PRAGMA = 'PRAGMA foreign_keys = ON;'

@@ -4,7 +4,7 @@ from typing import Optional
 
 from remember.handle_args import setup_args_for_local_history
 import remember.command_store_lib as command_store
-from remember.interactive import load_user_interactor
+from remember.interactive import load_user_interactor, display_and_interact_results
 
 
 def main() -> Optional[str]:
@@ -34,18 +34,8 @@ def run_history_command(save_dir: str,
     result = store.get_command_with_context(directory)
     total_time = time.time() - start_time
     print("Search time %.5f:  seconds" % total_time)
-    print(f"Number of results found: {str(len(result))}")
-    if len(result) > max_results:
-        print(f"Results truncated to the first: {max_results}")
-    result = result[:max_results]
-    last_saved_file_path = os.path.join(save_dir, command_store.DEFAULT_LAST_SAVE_FILE_NAME)
-    command_store.save_last_search(last_saved_file_path, result)
-    if execute:
-        command_executor = load_user_interactor()
-        if not command_executor.run(result):
-            return 'Exit'
-    command_store.print_commands(result)
-    return ''
+    return display_and_interact_results(
+        result, max_results, save_dir, history_file_path, None, execute)
 
 
 if __name__ == "__main__":
