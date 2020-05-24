@@ -4,7 +4,7 @@ from typing import Optional
 
 from remember.handle_args import setup_args_for_local_history
 import remember.command_store_lib as command_store
-from remember.interactive import load_user_interactor, display_and_interact_results
+from remember.interactive import display_and_interact_results
 
 
 def main() -> Optional[str]:

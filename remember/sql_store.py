@@ -95,9 +95,9 @@ class SqlCommandStore(object):
         db_connection = self._get_initialized_db_connection()
         with db_connection:
             command_rowid = self._create_or_update_command(command)
-            if command.get_directory_context():
-                context_rowid = self._create_or_insert_directory_context(
-                    command.get_directory_context())
+            dir_context = command.get_directory_context()
+            if dir_context is not None:
+                context_rowid = self._create_or_insert_directory_context(dir_context)
                 self._insert_into_command_context(command_rowid, context_rowid)
 
     def delete_command(self, command_str: str) -> Optional[str]:

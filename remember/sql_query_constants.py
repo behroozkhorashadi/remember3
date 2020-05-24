@@ -71,11 +71,11 @@ FROM {_COMMAND_CONTEXT}
 WHERE command_id = ? AND context_id = ?"""
 
 SEARCH_COMMANDS_QUERY = """
-SELECT 
+SELECT
     full_command,
     count_seen,
     last_used,
-    command_info    
+    command_info
 FROM """ + _REMEMBER + ' {} '
 
 TABLE_EXISTS_QUERY = ''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{}' '''

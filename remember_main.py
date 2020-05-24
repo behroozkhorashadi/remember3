@@ -3,7 +3,6 @@
 This module runs the remember portion of the command store interaction. It
 allows you to query all the stored commands and also delete them if you choose.
 """
-import os
 import time
 from typing import Optional, List
 
