@@ -6,9 +6,9 @@ from typing import List, Set, Optional
 from remember.sql_query_constants import SEARCH_COMMANDS_QUERY, DELETE_FROM_REMEMBER, \
     INSERT_INTO_REMEMBER_QUERY, UPDATE_REMEMBER_COUNT_QUERY, TABLE_EXISTS_QUERY, PRAGMA_STR, \
     UPDATE_COMMAND_INFO_QUERY, CREATE_TABLES, GET_ROWID_FROM_DIRECTORIES, \
-    INSERT_INTO_DIRECTORIES_QUERY, SIMPLE_SELECT_COMMAND_QUERY, GET_ROWID_FROM_COMMAND_CONTEXT,\
+    INSERT_INTO_DIRECTORIES_QUERY, SIMPLE_SELECT_COMMAND_QUERY, GET_ROWID_FROM_COMMAND_CONTEXT, \
     INSERT_INTO_COMMAND_CONTEXT, UPDATE_COMMAND_CONTEXT_COUNT_QUERY, \
-    SELECT_CONTEXT_COMMANDS
+    SELECT_CONTEXT_COMMANDS, FOREIGN_KEY_PRAGMA
 
 
 class Command(object):
@@ -170,7 +170,7 @@ class SqlCommandStore(object):
             cursor.execute(SELECT_CONTEXT_COMMANDS, (directory_path,))
             rows = cursor.fetchall()
             for row in rows:
-                command = Command(row[0], row[2], row[1], row[3], row[4])
+                command = Command(row[0], row[1], row[2], row[3], row[4])
                 matches.append(command)
         return matches
 
@@ -218,9 +218,10 @@ class SqlCommandStore(object):
             self._db_conn = _create_db_connection(self._db_file)
             assert self._db_conn
             self._db_conn.execute(PRAGMA_STR)
+            self._db_conn.execute(FOREIGN_KEY_PRAGMA)
             if not self._table_creation_verified:
-                for table_name, create_statment in CREATE_TABLES.items():
-                    _init_tables_if_not_exists(self._db_conn, table_name, create_statment)
+                for table_name, create_statement in CREATE_TABLES.items():
+                    _init_tables_if_not_exists(self._db_conn, table_name, create_statement)
                 self._table_creation_verified = True
         return self._db_conn
 

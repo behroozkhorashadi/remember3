@@ -9,7 +9,7 @@ from typing import Optional, List
 
 import remember.command_store_lib as command_store
 from remember.handle_args import setup_args_for_search
-from remember.interactive import load_user_interactor
+from remember.interactive import display_and_interact_results
 
 IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
 
@@ -40,18 +40,8 @@ def run_remember_command(save_dir: str, history_file_path: str, query: List[str]
     result = store.search_commands(query, search_starts_with, search_info=search_all)
     total_time = time.time() - start_time
     print("Search time %.5f:  seconds" % total_time)
-    print(f"Number of results found: {str(len(result))}")
-    if len(result) > max_return_count:
-        print(f"Results truncated to the first: {max_return_count}")
-    result = result[:max_return_count]
-    last_saved_file_path = os.path.join(save_dir, command_store.DEFAULT_LAST_SAVE_FILE_NAME)
-    command_store.save_last_search(last_saved_file_path, result)
-    if execute:
-        command_executor = load_user_interactor(history_file_path)
-        if not command_executor.run(result):
-            return 'Exit'
-    command_store.print_commands(result, query)
-    return None
+    return display_and_interact_results(
+        result, max_return_count, save_dir, history_file_path, query, execute)
 
 
 if __name__ == "__main__":

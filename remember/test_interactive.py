@@ -11,7 +11,8 @@ from mock import patch, Mock, mock_open
 
 import remember.command_store_lib as command_store_lib
 from remember.command_store_lib import Command
-from remember.interactive import InteractiveCommandExecutor
+from remember.interactive import InteractiveCommandExecutor, display_and_interact_results, \
+    load_user_interactor
 
 TEST_PATH_DIR = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, TEST_PATH_DIR + '/../')
@@ -171,3 +172,53 @@ class Test(unittest.TestCase):
     def subprocess_call_mock(self, command_str: str, expected: str, shell: Any) -> None:
         self.assertEqual(expected, command_str)
         self.assertTrue(shell)
+
+    @mock.patch('remember.interactive.load_user_interactor')
+    @mock.patch('remember.command_store_lib.save_last_search')
+    def test_display_and_interact_whenSaveAndExecute_shouldDoBoth(
+            self, save_search: Mock, load_interactor: Mock) -> None:
+        results = [Command('grep command'), Command('vim command')]
+        rr = display_and_interact_results(results, 5, 'save_dir', 'history_file', ['grep'], True)
+        self.assertEqual(rr, None)
+        expected_path = os.path.join("save_dir", command_store_lib.DEFAULT_LAST_SAVE_FILE_NAME)
+        save_search.assert_called_once_with(expected_path, results)
+        load_interactor.assert_called_once_with('history_file')
+
+    @mock.patch('remember.interactive.load_user_interactor')
+    @mock.patch('remember.command_store_lib.save_last_search')
+    def test_display_and_interact_whenTruncateResult_shouldOnlySaveTruncatedResult(
+            self, save_search: Mock, load_interactor: Mock) -> None:
+        results = [Command('grep command'), Command('vim command')]
+        rr = display_and_interact_results(results, 1, 'save_dir', 'history_file', ['grep'], True)
+        self.assertEqual(rr, None)
+        expected_path = os.path.join("save_dir", command_store_lib.DEFAULT_LAST_SAVE_FILE_NAME)
+        results = results[:1]
+        save_search.assert_called_once_with(expected_path, results)
+        load_interactor.assert_called_once_with('history_file')
+
+
+    @mock.patch('remember.command_store_lib.print_commands')
+    @mock.patch('subprocess.call')
+    @mock.patch('remember.interactive.load_user_interactor',
+                return_value=InteractiveCommandExecutor())
+    @mock.patch('remember.command_store_lib.save_last_search')
+    def test_display_nd_interact_whenUserChooses1_shouldDo1(
+            self, save_search: Mock, load_interactor: Mock, subprocess_mock: Mock,
+            print_mock: Mock) -> None:
+        command = Command('grep command')
+        results = [command, Command('vim command')]
+        user_input = ['1']
+        with patch('builtins.input', side_effect=user_input):
+            rr = display_and_interact_results(
+                results, 1, 'save_dir', 'history_file', ['grep'], True)
+        self.assertEqual(rr, None)
+        expected_path = os.path.join("save_dir", command_store_lib.DEFAULT_LAST_SAVE_FILE_NAME)
+        results = results[:1]
+        save_search.assert_called_once_with(expected_path, results)
+        load_interactor.assert_called_once_with('history_file')
+        subprocess_mock.assert_called_once_with(command.get_unique_command_id(), shell=True)
+        print_mock.assert_called_once()
+
+    def test_load_interactive_whenCallingLoad_shouldHaveCorrectHistoryFile(self) -> None:
+        interactive = load_user_interactor('history_file_path')
+        self.assertEqual(interactive._history_file_path, 'history_file_path')

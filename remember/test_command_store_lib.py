@@ -338,3 +338,10 @@ class TestCommandStoreLib(unittest.TestCase):
             command_store_lib.start_history_processing(store, file_name, 'doesntmatter', 10)
         handle = m()
         handle.write.assert_not_called()
+
+    def test_save_last_search_whenLastSearchEmpty_shouldDoNothing(self) -> None:
+        with patch('remember.command_store_lib.open') as m:
+            command_store_lib.save_last_search('', [])
+            handle = m()
+            handle.write.assert_not_called()
+

@@ -76,7 +76,7 @@ class TestMain(TestCase):
                 process_mock.assert_called_once()
                 write_mock.assert_called_once()
 
-    @mock.patch('remember_main.load_user_interactor')
+    @mock.patch('remember.interactive.load_user_interactor')
     @mock.patch('remember.command_store_lib.load_command_store',return_value=DOUBLE_COMMAND_STORE)
     @mock.patch('remember.command_store_lib.print_commands')
     @mock.patch('remember.command_store_lib.start_history_processing')
@@ -101,8 +101,8 @@ class TestMain(TestCase):
                 executor.assert_called_once()
                 write_mock.assert_called_once()
 
-    @mock.patch('remember_main.load_user_interactor')
-    @mock.patch('remember.command_store_lib.load_command_store',return_value=DOUBLE_COMMAND_STORE)
+    @mock.patch('remember.interactive.load_user_interactor')
+    @mock.patch('remember.command_store_lib.load_command_store', return_value=DOUBLE_COMMAND_STORE)
     @mock.patch('remember.command_store_lib.print_commands')
     @mock.patch('remember.command_store_lib.start_history_processing')
     def test_setup_args_for_search_should_make_call_but_return_exit(
@@ -128,3 +128,20 @@ class TestMain(TestCase):
                 process_mock.assert_called_once()
                 executor.assert_called_once()
                 write_mock.assert_called_once()
+
+    @mock.patch('remember_main.run_remember_command')
+    def test_run_remember_command_whenCalled_shouldputArgsInRightSpots(
+            self, method_mock: Mock) -> None:
+        with mock.patch('argparse.ArgumentParser.parse_args',
+                        return_value=argparse.Namespace(json=True,
+                                                        sql=False,
+                                                        all=True,
+                                                        startswith=True,
+                                                        execute=True,
+                                                        save_dir='save_dir',
+                                                        history_file_path='hist',
+                                                        max=1,
+                                                        query=['grep'])):
+            remember_main.main()
+            method_mock.assert_called_once_with(
+                "save_dir", "hist", ['grep'], True, True, True, 1)
