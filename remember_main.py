@@ -9,7 +9,7 @@ from typing import Optional, List
 
 import remember.command_store_lib as command_store
 from remember.handle_args import setup_args_for_search
-from remember.interactive import InteractiveCommandExecutor
+from remember.interactive import load_user_interactor
 
 IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
 
@@ -47,7 +47,7 @@ def run_remember_command(save_dir: str, history_file_path: str, query: List[str]
     last_saved_file_path = os.path.join(save_dir, command_store.DEFAULT_LAST_SAVE_FILE_NAME)
     command_store.save_last_search(last_saved_file_path, result)
     if execute:
-        command_executor = InteractiveCommandExecutor(history_file_path)
+        command_executor = load_user_interactor(history_file_path)
         if not command_executor.run(result):
             return 'Exit'
     command_store.print_commands(result, query)

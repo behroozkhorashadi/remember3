@@ -7,7 +7,8 @@ from remember.sql_query_constants import SEARCH_COMMANDS_QUERY, DELETE_FROM_REME
     INSERT_INTO_REMEMBER_QUERY, UPDATE_REMEMBER_COUNT_QUERY, TABLE_EXISTS_QUERY, PRAGMA_STR, \
     UPDATE_COMMAND_INFO_QUERY, CREATE_TABLES, GET_ROWID_FROM_DIRECTORIES, \
     INSERT_INTO_DIRECTORIES_QUERY, SIMPLE_SELECT_COMMAND_QUERY, \
-    GET_ROWID_FROM_COMMAND_CONTEXT, INSERT_INTO_COMMAND_CONTEXT, UPDATE_COMMAND_CONTEXT_COUNT_QUERY
+    GET_ROWID_FROM_COMMAND_CONTEXT, INSERT_INTO_COMMAND_CONTEXT, UPDATE_COMMAND_CONTEXT_COUNT_QUERY, \
+    SELECT_CONTEXT_COMMANDS
 
 
 class Command(object):
@@ -160,6 +161,18 @@ class SqlCommandStore(object):
                 command = Command(row[0], row[2], row[1], row[3])
                 matches.append(command)
         return _rerank_matches(matches, search_terms)
+
+    def get_command_with_context(self, directory_path: str) -> List[Command]:
+        matches = []
+        db_conn = self._get_initialized_db_connection()
+        with db_conn:
+            cursor = db_conn.cursor()
+            cursor.execute(SELECT_CONTEXT_COMMANDS, (directory_path,))
+            rows = cursor.fetchall()
+            for row in rows:
+                command = Command(row[0], row[2], row[1], row[3], row[4])
+                matches.append(command)
+        return matches
 
     def _get_rowid_of_command(self, command_str: str) -> Optional[int]:
         cursor = self._get_initialized_db_connection().cursor()

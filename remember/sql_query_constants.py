@@ -52,19 +52,15 @@ UPDATE_COMMAND_CONTEXT_COUNT_QUERY = f'''UPDATE {_COMMAND_CONTEXT}
                                      SET num_occurrences = num_occurrences + 1
                                      WHERE rowid = ?;'''
 
-UPDATE_COUNT_AND_DIR_QUERY = f''' UPDATE {_REMEMBER}
-                                     SET count_seen = count_seen + 1,
-                                         last_used = ?,
-                                         directory_context_id = ?
-                                     WHERE rowid = ?'''
-
 UPDATE_COMMAND_INFO_QUERY = f''' UPDATE {_REMEMBER}
                                  SET command_info = ?
                                  WHERE full_command = ?'''
 
-# Select statements
+# Simple select statements
 SIMPLE_SELECT_COMMAND_QUERY = f"SELECT rowid FROM {_REMEMBER} WHERE full_command = ?"
+
 GET_ROWID_FROM_DIRECTORIES = f"SELECT rowid FROM {_DIRECTORIES} WHERE dir_path = ?"
+
 GET_ROWID_FROM_COMMAND_CONTEXT = \
 f"""
 SELECT rowid 
@@ -72,6 +68,28 @@ FROM {_COMMAND_CONTEXT}
 WHERE command_id = ? AND context_id = ?"""
 
 SEARCH_COMMANDS_QUERY = 'SELECT * FROM ' + _REMEMBER + ' {}'
+
 TABLE_EXISTS_QUERY = ''' SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{}' '''
+
+# Join select statements
+SELECT_CONTEXT_COMMANDS = \
+"""
+SELECT 
+  remember.full_command,
+  remember.count_seen,
+  remember.last_used,
+  remember.command_info,
+  directories.dir_path as dir_path
+FROM
+  directories
+INNER JOIN 
+  command_context ON directories.rowid = command_context.context_id
+INNER JOIN
+  remember ON remember.rowid = command_context.command_id
+WHERE 
+  directories.dir_path= ?
+ORDER BY 
+  remember.last_used DESC;
+"""
 
 PRAGMA_STR = 'PRAGMA case_sensitive_like = true;'

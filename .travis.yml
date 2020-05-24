@@ -6,7 +6,7 @@ install:
   - pip install -r requirements.txt
 # command to run tests
 script:
-  - pytest -v --cov=remember
+  - pytest -v --cov=.
   - mypy . --disallow-untyped-calls --disallow-untyped-defs --check-untyped-defs --warn-incomplete-stub --warn-redundant-casts --warn-no-return --warn-unused-ignores --ignore-missing-imports
   - flake8 --exclude=venv* --statistics
 after_success:

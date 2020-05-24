@@ -86,6 +86,10 @@ class InteractiveCommandExecutor(object):
                   + BColors.ENDC)
 
 
+def load_user_interactor(history_file_path: Optional[str] = None) -> InteractiveCommandExecutor:
+    return InteractiveCommandExecutor(history_file_path)
+
+
 def get_user_input(msg: str) -> str:
     result = input(msg)
     assert isinstance(result, str)

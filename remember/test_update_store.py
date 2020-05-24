@@ -16,7 +16,7 @@ class CommandStoreTest(SqlCommandStore):
                         starts_with: bool = False,
                         sort: bool = True,
                         search_info: bool = False) -> List[Command]:
-        return [Command('result not used')]
+        return [Command('result not used'), Command('another command')]
 
 
 class TestMain(TestCase):
@@ -74,6 +74,25 @@ class TestMain(TestCase):
                                                         delete=False,
                                                         updateinfo=True,
                                                         max=1000,
+                                                        query='query')):
+            command_executor_mock = mock.Mock()
+            update_store.main(command_executor_mock)
+            load_store_mock.assert_called()
+
+    @mock.patch('remember.command_store_lib.load_command_store', return_value=CommandStoreTest())
+    def test_setup_args_for_update_when_called_with_update_andmax1_store_updated(
+            self, load_store_mock: mock.Mock) -> None:
+        with mock.patch('argparse.ArgumentParser.parse_args',
+                        return_value=argparse.Namespace(json=True,
+                                                        sql=False,
+                                                        all=True,
+                                                        startswith=True,
+                                                        execute=False,
+                                                        save_dir='save_dir',
+                                                        history_file_path='hist',
+                                                        delete=False,
+                                                        updateinfo=True,
+                                                        max=1,
                                                         query='query')):
             command_executor_mock = mock.Mock()
             update_store.main(command_executor_mock)
