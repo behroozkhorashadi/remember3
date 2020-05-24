@@ -261,6 +261,8 @@ def load_command_store(db_file_name: str) -> SqlCommandStore:
 
 
 def save_last_search(file_path: str, last_search_result: List[Command]) -> None:
+    if len(last_search_result) == 0:
+        return
     with open(file_path, 'w') as file_handler:
         for search_command in last_search_result:
             file_handler.write('%s\n' % search_command.get_unique_command_id())

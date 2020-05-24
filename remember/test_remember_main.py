@@ -54,7 +54,7 @@ class TestMain(TestCase):
         assert result
         assert result.startswith("To many or too few args")
 
-    @mock.patch('remember.command_store_lib.load_command_store', return_value=SqlCommandStore())
+    @mock.patch('remember.command_store_lib.load_command_store', return_value=DOUBLE_COMMAND_STORE)
     @mock.patch('remember.command_store_lib.print_commands')
     @mock.patch('remember.command_store_lib.start_history_processing')
     def test_setup_args_for_search_should_make_appropriate_calls_into_command_store_lib(
@@ -68,7 +68,7 @@ class TestMain(TestCase):
                                                         save_dir='save_dir',
                                                         history_file_path='hist',
                                                         max=1000,
-                                                        query='query')):
+                                                        query='grep')):
             with mock.patch('remember.command_store_lib.open', mock.mock_open()) as write_mock:
                 remember_main.main()
                 print_mock.assert_called_once()
