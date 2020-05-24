@@ -21,8 +21,11 @@ def main() -> Optional[str]:
                                args.execute, args.max)
 
 
-def run_history_command(save_dir: str, history_file_path: str, directory: str,
-                        execute: bool, max_results: int) -> Optional[str]:
+def run_history_command(save_dir: str,
+                        history_file_path: str,
+                        directory: str,
+                        execute: bool,
+                        max_results: int) -> Optional[str]:
     store_file_path = command_store.get_file_path(save_dir)
     store = command_store.load_command_store(store_file_path)
     command_store.start_history_processing(store, history_file_path, save_dir, 1)
@@ -32,6 +35,9 @@ def run_history_command(save_dir: str, history_file_path: str, directory: str,
     total_time = time.time() - start_time
     print("Search time %.5f:  seconds" % total_time)
     print(f"Number of results found: {str(len(result))}")
+    if len(result) > max_results:
+        print(f"Results truncated to the first: {max_results}")
+    result = result[:max_results]
     last_saved_file_path = os.path.join(save_dir, command_store.DEFAULT_LAST_SAVE_FILE_NAME)
     command_store.save_last_search(last_saved_file_path, result)
     if execute:
