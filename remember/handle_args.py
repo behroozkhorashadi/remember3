@@ -52,6 +52,11 @@ def setup_args_for_local_history() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     add_save_dir(parser)
     add_history_arg_to_parser(parser)
+    parser.add_argument(
+        "-t",
+        "--terminal_hist_file",
+        help="If you are using a custom history file then this would be your"
+             " terminal history file. ex: '~/.bash_history'")
     add_result_count_max(parser)
     parser.add_argument(
         "-e",
@@ -59,7 +64,6 @@ def setup_args_for_local_history() -> argparse.Namespace:
         help="Execute the searched commands.",
         action="store_true")
     return parser.parse_args()
-
 
 
 def add_history_arg_to_parser(parser: argparse.ArgumentParser) -> None:

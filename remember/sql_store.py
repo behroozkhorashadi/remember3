@@ -6,8 +6,8 @@ from typing import List, Set, Optional
 from remember.sql_query_constants import SEARCH_COMMANDS_QUERY, DELETE_FROM_REMEMBER, \
     INSERT_INTO_REMEMBER_QUERY, UPDATE_REMEMBER_COUNT_QUERY, TABLE_EXISTS_QUERY, PRAGMA_STR, \
     UPDATE_COMMAND_INFO_QUERY, CREATE_TABLES, GET_ROWID_FROM_DIRECTORIES, \
-    INSERT_INTO_DIRECTORIES_QUERY, SIMPLE_SELECT_COMMAND_QUERY, \
-    GET_ROWID_FROM_COMMAND_CONTEXT, INSERT_INTO_COMMAND_CONTEXT, UPDATE_COMMAND_CONTEXT_COUNT_QUERY, \
+    INSERT_INTO_DIRECTORIES_QUERY, SIMPLE_SELECT_COMMAND_QUERY, GET_ROWID_FROM_COMMAND_CONTEXT,\
+    INSERT_INTO_COMMAND_CONTEXT, UPDATE_COMMAND_CONTEXT_COUNT_QUERY, \
     SELECT_CONTEXT_COMMANDS
 
 
@@ -138,7 +138,7 @@ class SqlCommandStore(object):
         db_conn = self._get_initialized_db_connection()
         with db_conn:
             cursor = db_conn.cursor()
-            cursor.execute(f'SELECT COUNT(*) FROM remember ')
+            cursor.execute('SELECT COUNT(*) FROM remember')
             count = cursor.fetchall()
             print('\nTotal rows: {}'.format(count[0][0]))
             return count[0][0]
@@ -183,7 +183,7 @@ class SqlCommandStore(object):
         else:
             return data[0]
 
-    def _create_or_update_command(self, command: Command):
+    def _create_or_update_command(self, command: Command) -> int:
         row_id = self._get_rowid_of_command(command.get_unique_command_id())
         cursor = self._get_initialized_db_connection().cursor()
         if not row_id:
@@ -193,6 +193,7 @@ class SqlCommandStore(object):
             row_id = cursor.lastrowid
         else:
             cursor.execute(UPDATE_REMEMBER_COUNT_QUERY, (command.last_used_time(), row_id,))
+        assert(row_id is not None)
         return row_id
 
     def _get_directory_context_row(self, dir_context: str) -> Optional[int]:
@@ -202,13 +203,14 @@ class SqlCommandStore(object):
         data = cursor.fetchone()
         return data[0] if data else None
 
-    def _create_or_insert_directory_context(self, directory_path: Optional[str]):
+    def _create_or_insert_directory_context(self, directory_path: str) -> int:
         assert(directory_path is not None)
         directory_row_id = self._get_directory_context_row(directory_path)
         if not directory_row_id:
             cursor = self._get_initialized_db_connection().cursor()
             cursor.execute(INSERT_INTO_DIRECTORIES_QUERY, (directory_path,))
             directory_row_id = cursor.lastrowid
+        assert(directory_row_id is not None)
         return directory_row_id
 
     def _get_initialized_db_connection(self) -> sqlite3.Connection:

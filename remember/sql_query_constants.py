@@ -4,7 +4,7 @@ _COMMAND_CONTEXT = 'command_context'
 
 # Create table statements
 SQL_CREATE_REMEMBER_TABLE = \
-f""" 
+    f"""
 CREATE TABLE IF NOT EXISTS {_REMEMBER}(
     full_command TEXT PRIMARY KEY ,
     count_seen INTEGER NOT NULL ,
@@ -12,11 +12,11 @@ CREATE TABLE IF NOT EXISTS {_REMEMBER}(
     command_info TEXT);"""
 
 SQL_CREATE_DIR_TABLE = \
-f"""  
+    f"""
 CREATE TABLE IF NOT EXISTS {_DIRECTORIES} (dir_path TEXT PRIMARY_KEY); """
 
 CREATE_CONTEXT_COMMAND_TABLE = \
-f""" 
+    f"""
 CREATE TABLE IF NOT EXISTS {_COMMAND_CONTEXT} (
   command_id INTEGER NOT NULL,
   context_id INTEGER NOT NULL,
@@ -32,8 +32,8 @@ CREATE_TABLES = {_REMEMBER: SQL_CREATE_REMEMBER_TABLE,
 
 # Insert statements
 INSERT_INTO_REMEMBER_QUERY = f''' INSERT INTO {_REMEMBER}(
-                                    full_command, 
-                                    count_seen, 
+                                    full_command,
+                                    count_seen,
                                     last_used,
                                     command_info) VALUES(?,?,?,?) '''
 
@@ -62,9 +62,9 @@ SIMPLE_SELECT_COMMAND_QUERY = f"SELECT rowid FROM {_REMEMBER} WHERE full_command
 GET_ROWID_FROM_DIRECTORIES = f"SELECT rowid FROM {_DIRECTORIES} WHERE dir_path = ?"
 
 GET_ROWID_FROM_COMMAND_CONTEXT = \
-f"""
-SELECT rowid 
-FROM {_COMMAND_CONTEXT} 
+    f"""
+SELECT rowid
+FROM {_COMMAND_CONTEXT}
 WHERE command_id = ? AND context_id = ?"""
 
 SEARCH_COMMANDS_QUERY = 'SELECT * FROM ' + _REMEMBER + ' {}'
@@ -73,23 +73,23 @@ TABLE_EXISTS_QUERY = ''' SELECT count(name) FROM sqlite_master WHERE type='table
 
 # Join select statements
 SELECT_CONTEXT_COMMANDS = \
-"""
-SELECT 
-  remember.full_command,
-  remember.count_seen,
-  remember.last_used,
-  remember.command_info,
-  directories.dir_path as dir_path
-FROM
-  directories
-INNER JOIN 
-  command_context ON directories.rowid = command_context.context_id
-INNER JOIN
-  remember ON remember.rowid = command_context.command_id
-WHERE 
-  directories.dir_path= ?
-ORDER BY 
-  remember.last_used DESC;
-"""
+    """
+    SELECT
+      remember.full_command,
+      remember.count_seen,
+      remember.last_used,
+      remember.command_info,
+      directories.dir_path as dir_path
+    FROM
+      directories
+    INNER JOIN
+      command_context ON directories.rowid = command_context.context_id
+    INNER JOIN
+      remember ON remember.rowid = command_context.command_id
+    WHERE
+      directories.dir_path= ?
+    ORDER BY
+      remember.last_used DESC;
+    """
 
 PRAGMA_STR = 'PRAGMA case_sensitive_like = true;'

@@ -26,7 +26,7 @@ def run_history_command(save_dir: str, history_file_path: str, directory: str,
     store_file_path = command_store.get_file_path(save_dir)
     store = command_store.load_command_store(store_file_path)
     command_store.start_history_processing(store, history_file_path, save_dir, 1)
-    print(f'Looking for all past commands with: {directory}' )
+    print(f'Looking for all past commands with: {directory}')
     start_time = time.time()
     result = store.get_command_with_context(directory)
     total_time = time.time() - start_time
@@ -40,6 +40,7 @@ def run_history_command(save_dir: str, history_file_path: str, directory: str,
             return 'Exit'
     command_store.print_commands(result)
     return ''
+
 
 if __name__ == "__main__":
     main()

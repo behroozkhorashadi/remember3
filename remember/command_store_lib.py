@@ -10,7 +10,6 @@ from remember.sql_store import SqlCommandStore, IgnoreRules, Command
 import shutil
 import time
 
-
 PROCESSED_TO_TAG = '****** previous commands read *******'
 CUSTOM_HIST_HEAD = '## remember command custom history file ##\n'
 CUSTOM_HIST_SEPARATOR = '<<!>>'
@@ -30,8 +29,9 @@ class BColors(object):
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+
 class CommandAndContext(object):
-    def __init__(self, command_line: str, directory_context: str=None):
+    def __init__(self, command_line: str, directory_context: str = None):
         self._command_line = command_line
         self._directory_context = directory_context
 
@@ -41,15 +41,16 @@ class CommandAndContext(object):
     def directory_context(self) -> Optional[str]:
         return self._directory_context
 
+
 class HistoryFileType(Enum):
     UNKNOWN = 0
     STANDARD = 1
     CUSTOM = 2
 
 
-
 class HistoryProcessor(object):
     """This class helps process the history file into the store"""
+
     def __init__(self,
                  store: SqlCommandStore,
                  history_file_path: str,
@@ -71,7 +72,7 @@ class HistoryProcessor(object):
         commands = get_unread_commands(lines, self._history_file_type)
         if len(commands) > self._threshold:
             process_history_commands(self._store, commands, self._ignore_rule_file)
-            print(f'Wrote to database in {time.time()-start_time} seconds')
+            print(f'Wrote to database in {time.time() - start_time} seconds')
             self._lines_processed = True
 
     def update_history_file(self) -> None:
@@ -200,7 +201,7 @@ def get_string_file_lines(src_file: str) -> List[str]:
 
 def get_unread_commands(history_lines: List[str],
                         file_type: HistoryFileType) -> List[CommandAndContext]:
-    assert(file_type != HistoryFileType.UNKNOWN)
+    assert (file_type != HistoryFileType.UNKNOWN)
     """Read the history file and get all the unread commands."""
     unprocessed_commands: List[CommandAndContext] = []
     if file_type == HistoryFileType.CUSTOM:
@@ -276,6 +277,7 @@ def read_last_search(file_path: str) -> List[str]:
 def generate_store_from_args(history_file_path: str, save_directory: str) -> None:
     store = load_command_store(get_file_path(save_directory))
     start_history_processing(store, history_file_path, save_directory, 1)
+
 
 def start_history_processing(
         store: SqlCommandStore,
