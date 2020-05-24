@@ -48,6 +48,19 @@ def setup_args_for_generate() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def setup_args_for_local_history() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    add_save_dir(parser)
+    add_history_arg_to_parser(parser)
+    add_result_count_max(parser)
+    parser.add_argument(
+        "-e",
+        "--execute",
+        help="Execute the searched commands.",
+        action="store_true")
+    return parser.parse_args()
+
+
 def add_history_arg_to_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "history_file_path",
@@ -90,4 +103,4 @@ def add_required_terms(parser: argparse.ArgumentParser, add_history_arg: bool = 
     parser.add_argument(
         "query",
         nargs='+',
-        help="The term to search for. ex: 'git pull' or git")
+        help="The term to search for. ex: 'git pull', git")

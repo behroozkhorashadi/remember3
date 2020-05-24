@@ -9,7 +9,7 @@ from typing import Optional, List
 
 import remember.command_store_lib as command_store
 from remember.handle_args import setup_args_for_search
-from remember.interactive import InteractiveCommandExecutor
+from remember.interactive import load_user_interactor
 
 IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
 
@@ -34,7 +34,7 @@ def run_remember_command(save_dir: str, history_file_path: str, query: List[str]
                          max_return_count: int) -> Optional[str]:
     store_file_path = command_store.get_file_path(save_dir)
     store = command_store.load_command_store(store_file_path)
-    command_store.start_history_processing(store, history_file_path, save_dir, 1)
+    command_store.start_history_processing(store, history_file_path, save_dir, 20)
     print('Looking for all past commands with: ' + ", ".join(query))
     start_time = time.time()
     result = store.search_commands(query, search_starts_with, search_info=search_all)
@@ -46,15 +46,12 @@ def run_remember_command(save_dir: str, history_file_path: str, query: List[str]
     result = result[:max_return_count]
     last_saved_file_path = os.path.join(save_dir, command_store.DEFAULT_LAST_SAVE_FILE_NAME)
     command_store.save_last_search(last_saved_file_path, result)
-    try:
-        if execute:
-            command_executor = InteractiveCommandExecutor(history_file_path)
-            if not command_executor.run(result):
-                return 'Exit'
-        command_store.print_commands(result, query)
-        return None
-    finally:
-        store.close()
+    if execute:
+        command_executor = load_user_interactor(history_file_path)
+        if not command_executor.run(result):
+            return 'Exit'
+    command_store.print_commands(result, query)
+    return None
 
 
 if __name__ == "__main__":

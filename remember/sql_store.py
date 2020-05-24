@@ -3,17 +3,20 @@ import time
 import re
 from typing import List, Set, Optional
 
-from remember.sql_query_constants import SQL_CREATE_REMEMBER_TABLE, SEARCH_COMMANDS_QUERY, \
-    SIMPLE_SELECT_COMMAND_QUERY, DELETE_FROM_REMEMBER, GET_ROWID_FOR_COMMAND, \
-    INSERT_INTO_REMEMBER_QUERY, UPDATE_COUNT_QUERY, TABLE_EXISTS_QUERY, TABLE_NAME, PRAGMA_STR, \
-    UPDATE_COMMAND_INFO_QUERY
+from remember.sql_query_constants import SEARCH_COMMANDS_QUERY, DELETE_FROM_REMEMBER, \
+    INSERT_INTO_REMEMBER_QUERY, UPDATE_REMEMBER_COUNT_QUERY, TABLE_EXISTS_QUERY, PRAGMA_STR, \
+    UPDATE_COMMAND_INFO_QUERY, CREATE_TABLES, GET_ROWID_FROM_DIRECTORIES, \
+    INSERT_INTO_DIRECTORIES_QUERY, SIMPLE_SELECT_COMMAND_QUERY, GET_ROWID_FROM_COMMAND_CONTEXT,\
+    INSERT_INTO_COMMAND_CONTEXT, UPDATE_COMMAND_CONTEXT_COUNT_QUERY, \
+    SELECT_CONTEXT_COMMANDS
 
 
 class Command(object):
     """This class holds the basic pieces for a command."""
 
     def __init__(self, command_str: str = "", last_used: float = time.time(),
-                 count_seen: int = 1, command_info: str = ''):
+                 count_seen: int = 1, command_info: str = '',
+                 directory_context: Optional[str] = None):
         self._command_str = Command.get_curated_command(command_str)
         self._context_before: Set = set()
         self._context_after: Set = set()
@@ -22,6 +25,7 @@ class Command(object):
         self._count_seen = count_seen
         self._last_used = last_used
         self._command_info = command_info
+        self._directory_context = directory_context
 
     def _parse_command(self, command: str) -> None:
         """Set the primary command."""
@@ -58,6 +62,10 @@ class Command(object):
         """Get the count seen."""
         return self._count_seen
 
+    def get_directory_context(self) -> Optional[str]:
+        """Get the command directory context"""
+        return self._directory_context
+
     def last_used_time(self) -> float:
         """Get the last used time in seconds from epoch"""
         return self._last_used
@@ -84,16 +92,13 @@ class SqlCommandStore(object):
         self._db_conn: Optional[sqlite3.Connection] = None
 
     def add_command(self, command: Command) -> None:
-        row_id = self._get_rowid_of_command(command.get_unique_command_id())
         db_connection = self._get_initialized_db_connection()
         with db_connection:
-            cursor = db_connection.cursor()
-            if row_id:
-                cursor.execute(UPDATE_COUNT_QUERY, (command.last_used_time(), row_id,))
-            else:
-                row_insert = (command.get_unique_command_id(), command.get_count_seen(),
-                              command.last_used_time(), command.get_command_info())
-                cursor.execute(INSERT_INTO_REMEMBER_QUERY, row_insert)
+            command_rowid = self._create_or_update_command(command)
+            if command.get_directory_context():
+                context_rowid = self._create_or_insert_directory_context(
+                    command.get_directory_context())
+                self._insert_into_command_context(command_rowid, context_rowid)
 
     def delete_command(self, command_str: str) -> Optional[str]:
         db_conn = self._get_initialized_db_connection()
@@ -120,21 +125,23 @@ class SqlCommandStore(object):
         """This method checks to see if a command (by name) is in the store.
         """
         db_conn = self._get_initialized_db_connection()
-        cursor = db_conn.cursor()
-        cursor.execute(SIMPLE_SELECT_COMMAND_QUERY, (command_str,))
-        data = cursor.fetchall()
-        if len(data) == 0:
-            return False
-        return True
+        with db_conn:
+            cursor = db_conn.cursor()
+            cursor.execute(SIMPLE_SELECT_COMMAND_QUERY, [command_str])
+            data = cursor.fetchall()
+            if len(data) == 0:
+                return False
+            return True
 
     def get_num_commands(self) -> int:
         """This method returns the number of commands in the store."""
         db_conn = self._get_initialized_db_connection()
-        cursor = db_conn.cursor()
-        cursor.execute('SELECT COUNT(*) FROM {}'.format('remember'))
-        count = cursor.fetchall()
-        print('\nTotal rows: {}'.format(count[0][0]))
-        return count[0][0]
+        with db_conn:
+            cursor = db_conn.cursor()
+            cursor.execute('SELECT COUNT(*) FROM remember')
+            count = cursor.fetchall()
+            print('\nTotal rows: {}'.format(count[0][0]))
+            return count[0][0]
 
     def search_commands(self,
                         search_terms: List,
@@ -155,18 +162,56 @@ class SqlCommandStore(object):
                 matches.append(command)
         return _rerank_matches(matches, search_terms)
 
-    def close(self) -> None:
-        if self._db_conn:
-            self._db_conn.close()
+    def get_command_with_context(self, directory_path: str) -> List[Command]:
+        matches = []
+        db_conn = self._get_initialized_db_connection()
+        with db_conn:
+            cursor = db_conn.cursor()
+            cursor.execute(SELECT_CONTEXT_COMMANDS, (directory_path,))
+            rows = cursor.fetchall()
+            for row in rows:
+                command = Command(row[0], row[2], row[1], row[3], row[4])
+                matches.append(command)
+        return matches
 
     def _get_rowid_of_command(self, command_str: str) -> Optional[int]:
         cursor = self._get_initialized_db_connection().cursor()
-        cursor.execute(GET_ROWID_FOR_COMMAND, (command_str,))
+        cursor.execute(SIMPLE_SELECT_COMMAND_QUERY, [command_str])
         data = cursor.fetchone()
         if data is None:
             return None
         else:
             return data[0]
+
+    def _create_or_update_command(self, command: Command) -> int:
+        row_id = self._get_rowid_of_command(command.get_unique_command_id())
+        cursor = self._get_initialized_db_connection().cursor()
+        if not row_id:
+            row_insert_values = (command.get_unique_command_id(), command.get_count_seen(),
+                                 command.last_used_time(), command.get_command_info())
+            cursor.execute(INSERT_INTO_REMEMBER_QUERY, row_insert_values)
+            row_id = cursor.lastrowid
+        else:
+            cursor.execute(UPDATE_REMEMBER_COUNT_QUERY, (command.last_used_time(), row_id,))
+        assert(row_id is not None)
+        return row_id
+
+    def _get_directory_context_row(self, dir_context: str) -> Optional[int]:
+        # This should just insert if not there and return the rowid
+        cursor = self._get_initialized_db_connection().cursor()
+        cursor.execute(GET_ROWID_FROM_DIRECTORIES, (dir_context,))
+        data = cursor.fetchone()
+        return data[0] if data else None
+
+    def _create_or_insert_directory_context(self, directory_path: str) -> int:
+        assert(directory_path is not None)
+        directory_row_id = self._get_directory_context_row(directory_path)
+        if not directory_row_id:
+            cursor = self._get_initialized_db_connection().cursor()
+            cursor.execute(INSERT_INTO_DIRECTORIES_QUERY, (directory_path,))
+            directory_row_id = cursor.lastrowid
+        assert(directory_row_id is not None)
+        return directory_row_id
 
     def _get_initialized_db_connection(self) -> sqlite3.Connection:
         if not self._db_conn:
@@ -174,9 +219,21 @@ class SqlCommandStore(object):
             assert self._db_conn
             self._db_conn.execute(PRAGMA_STR)
             if not self._table_creation_verified:
-                _init_tables_if_not_exists(self._db_conn)
+                for table_name, create_statment in CREATE_TABLES.items():
+                    _init_tables_if_not_exists(self._db_conn, table_name, create_statment)
                 self._table_creation_verified = True
         return self._db_conn
+
+    def _insert_into_command_context(self, command_rowid: int, context_rowid: int) -> None:
+        # This should just insert if not there and return the rowid
+        db_conn = self._get_initialized_db_connection()
+        cursor = db_conn.cursor()
+        cursor.execute(GET_ROWID_FROM_COMMAND_CONTEXT, (command_rowid, context_rowid,))
+        data = cursor.fetchone()
+        if data is None:
+            db_conn.cursor().execute(INSERT_INTO_COMMAND_CONTEXT, [command_rowid, context_rowid])
+        else:
+            db_conn.cursor().execute(UPDATE_COMMAND_CONTEXT_COUNT_QUERY, (data[0],))
 
 
 class IgnoreRules(object):
@@ -213,6 +270,9 @@ class IgnoreRules(object):
     def add_matches(self, command_str: str) -> None:
         """Add a exact matches with rule to ignore."""
         self._matches.add(command_str)
+
+    def size(self) -> int:
+        return len(self._matches)
 
 
 def _rerank_matches(commands: List[Command], terms: List[str]) -> List[Command]:
@@ -253,10 +313,12 @@ def _create_command_search_select_query(search_term: List, starts_with: bool, so
     return query
 
 
-def _init_tables_if_not_exists(db_conn: sqlite3.Connection, table_name: str = TABLE_NAME) -> None:
+def _init_tables_if_not_exists(db_conn: sqlite3.Connection,
+                               table_name: str,
+                               sql_create_statement: str) -> None:
     """ Create the table if it doesn't exist in the DB."""
-    if not _check_table_exists(db_conn, table_name):
-        _create_db_tables(db_conn)
+    if not _table_exists(db_conn, table_name):
+        _create_db_table(db_conn, table_name, sql_create_statement)
 
 
 def _create_db_connection(db_file_path: str) -> sqlite3.Connection:
@@ -264,7 +326,7 @@ def _create_db_connection(db_file_path: str) -> sqlite3.Connection:
     return sqlite3.connect(db_file_path)
 
 
-def _check_table_exists(db_conn: sqlite3.Connection, table_name: str) -> bool:
+def _table_exists(db_conn: sqlite3.Connection, table_name: str) -> bool:
     """Check if the sql table exists."""
     c = db_conn.cursor()
     c.execute(TABLE_EXISTS_QUERY.format(table_name))
@@ -274,8 +336,8 @@ def _check_table_exists(db_conn: sqlite3.Connection, table_name: str) -> bool:
     return False
 
 
-def _create_db_tables(db_conn: sqlite3.Connection) -> None:
+def _create_db_table(db_conn: sqlite3.Connection, table_name: str, create_statement: str) -> None:
     """ create a database connection to a SQLite database """
-    print('Creating table')
+    print(f'Creating {table_name} table')
     c = db_conn.cursor()
-    c.execute(SQL_CREATE_REMEMBER_TABLE)
+    c.execute(create_statement.format(table_name))

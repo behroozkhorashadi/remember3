@@ -4,28 +4,29 @@ import os
 import unittest
 from unittest import mock
 
-from mock import patch, mock_open
+from mock import patch, mock_open, Mock
 
 import remember.command_store_lib as command_store_lib
+from remember.sql_store import SqlCommandStore
 
 TEST_PATH_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_FILES_PATH = os.path.join(TEST_PATH_DIR, "test_files")
 
 
 class TestCommandStoreLib(unittest.TestCase):
+    def test_simple_assert_default_json_file_exists(self) -> None:
+        file_path = command_store_lib.get_file_path(TEST_FILES_PATH)
+        assert os.path.isfile(file_path)
 
-    def test_SqlCommandStore_isEmpty(self) -> None:
-        command_store = command_store_lib.SqlCommandStore(':memory:')
-        self.assertEqual(0, command_store.get_num_commands())
-
-    def test_readHistoryFile_whenFileRead_shouldFinishwithWriteEnd(self) -> None:
+    def test_readHistoryFile_whenFileRead_shouldFinishWithWriteEnd(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
         with open(file_name, 'rb') as hist_file:
             hist_file_content = hist_file.read()
-        store = command_store_lib.SqlCommandStore(':memory:')
-
+        store = SqlCommandStore(':memory:')
+        history_processor = command_store_lib.HistoryProcessor(store, file_name, '', 1)
         with patch('remember.command_store_lib.open', mock_open(read_data=hist_file_content)) as m:
-            command_store_lib.read_history_file(store, file_name, None, True)
+            history_processor.process_history_file()
+            history_processor.update_history_file()
         handle = m()
         handle.write.assert_called_with(f'{command_store_lib.PROCESSED_TO_TAG}\n')
         matches = store.search_commands(["add"], search_info=True)
@@ -34,62 +35,28 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertTrue(len(matches) == 0)
         matches = store.search_commands(["subl"], True)
         self.assertTrue(len(matches) == 1)
-        store.close()
 
     def test_readHistoryFile_whenDecodeError_shouldReturnOnly1(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
         hist_file_content = b"\x81\nOnly Command\n"
-        store = command_store_lib.SqlCommandStore()
-
         with patch('remember.command_store_lib.open', mock_open(read_data=hist_file_content)):
-            result = command_store_lib.get_unread_commands(file_name)
-        self.assertListEqual(['Only Command'], result)
-        store.close()
+            lines = command_store_lib.get_string_file_lines(file_name)
+            result = command_store_lib.get_unread_commands(
+                lines, command_store_lib.HistoryFileType.STANDARD)
+        self.assertEqual('Only Command', result[0].command_line())
+        self.assertIsNone(result[0].directory_context())
 
     def test_search_commands_with_sqlstore(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
-        store = command_store_lib.SqlCommandStore(':memory:')
-        command_store_lib.read_history_file(store, file_name, None, False)
+        store = SqlCommandStore(':memory:')
+        history_processor = command_store_lib.HistoryProcessor(store, file_name, '', 1)
+        history_processor.process_history_file()
         matches = store.search_commands(["add"], search_info=True)
         self.assertIsNotNone(matches)
         matches = store.search_commands(["add"], True)
         self.assertTrue(len(matches) == 0)
         matches = store.search_commands(["subl"], True)
         self.assertTrue(len(matches) == 1)
-        store.close()
-
-    def test_search_commands_whenTermIsDifferentCase_shouldNotReturn(self) -> None:
-        store = command_store_lib.SqlCommandStore(':memory:')
-        store.add_command(command_store_lib.Command('Add'))
-        matches = store.search_commands(["add"])
-        self.assertEqual(0, len(matches))
-        matches = store.search_commands(["Add"])
-        self.assertEqual(1, len(matches))
-        store.close()
-
-    def test_search_commands_sorted(self) -> None:
-        command_store = command_store_lib.SqlCommandStore(':memory:')
-        self.assertEqual(0, command_store.get_num_commands())
-        command_str = "some command string"
-        command = command_store_lib.Command(command_str, 10.0, 1)
-        command_store.add_command(command)
-        command_str2 = "somelater command string"
-        command2 = command_store_lib.Command(command_str2, 20.0, 1)
-        command_store.add_command(command2)
-
-        result = command_store.search_commands(["some"], starts_with=False, sort=True)
-        self.assertEqual(result[0].get_unique_command_id(), command2.get_unique_command_id())
-        self.assertEqual(result[1].get_unique_command_id(), command.get_unique_command_id())
-
-    def test_addCommandToSqlStore(self) -> None:
-        command_store = command_store_lib.SqlCommandStore(':memory:')
-        self.assertEqual(0, command_store.get_num_commands())
-        command_str = "some command string"
-        command = command_store_lib.Command(command_str)
-        command_store.add_command(command)
-        self.assertTrue(command_store.has_command(command))
-        self.assertFalse(command_store.has_command(command_store_lib.Command("some other command")))
-        self.assertEqual(1, command_store.get_num_commands())
 
     def test_getPrimaryCommand_CheckcorrectlyIdPrimaryCommand(self) -> None:
         command_str = "some command string"
@@ -111,7 +78,8 @@ class TestCommandStoreLib(unittest.TestCase):
     def test_readFile(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
         store = command_store_lib.SqlCommandStore(':memory:')
-        command_store_lib.read_history_file(store, file_name, None, False)
+        history_processor = command_store_lib.HistoryProcessor(store, file_name, '', 1)
+        history_processor.process_history_file()
         self.assertTrue(store.has_command_by_name("vim somefile.txt"))
         self.assertTrue(store.has_command_by_name("rm somefile.txt"))
         self.assertTrue(store.has_command_by_name("whereis script"))
@@ -120,9 +88,9 @@ class TestCommandStoreLib(unittest.TestCase):
 
     def test_readFile_withIgnoreFile(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
-        ignore_file = os.path.join(TEST_FILES_PATH, "test_ignore_rule.txt")
         store = command_store_lib.SqlCommandStore(':memory:')
-        command_store_lib.read_history_file(store, file_name, ignore_file, False)
+        history_processor = command_store_lib.HistoryProcessor(store, file_name, TEST_FILES_PATH, 1)
+        history_processor.process_history_file()
         self.assertFalse(store.has_command_by_name("vim somefile.txt"))
         self.assertTrue(store.has_command_by_name("rm somefile.txt"))
         self.assertTrue(store.has_command_by_name("whereis script"))
@@ -158,7 +126,7 @@ class TestCommandStoreLib(unittest.TestCase):
                 os.remove(file_path)
 
     def test_verify_read_sql_file(self) -> None:
-        file_name = os.path.join(TEST_FILES_PATH, "remember.db")
+        file_name = os.path.join(TEST_FILES_PATH, "test_remember.db")
         store = command_store_lib.load_command_store(file_name)
         matches = store.search_commands([""], False)
         self.assertTrue(len(matches) > 0)
@@ -168,7 +136,7 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertEqual(matches[0].get_count_seen(), 2)
 
     def test_verify_read_sql_file_time(self) -> None:
-        file_name = os.path.join(TEST_FILES_PATH, "remember.db")
+        file_name = os.path.join(TEST_FILES_PATH, "test_remember.db")
         self.assertTrue(os.path.isfile(file_name))
         store = command_store_lib.load_command_store(file_name)
         matches = store.search_commands([""], False)
@@ -176,11 +144,36 @@ class TestCommandStoreLib(unittest.TestCase):
             self.assertEqual(0, m.last_used_time())
 
     def test_readUnprocessedLinesOnly(self) -> None:
-        file_name = os.path.join(TEST_FILES_PATH, "test_processed.txt")
-        unread_commands = command_store_lib.get_unread_commands(file_name)
-        self.assertEqual("vim somefile.txt", unread_commands[0])
-        self.assertEqual("git commit -a -m \"renamed directory.\"", unread_commands[1])
+        file_name = os.path.join(TEST_FILES_PATH, "test_2unprocessed.txt")
+        lines = command_store_lib.get_string_file_lines(file_name)
+        unread_commands = command_store_lib.get_unread_commands(
+            lines, command_store_lib.HistoryFileType.STANDARD)
+        self.assertEqual("vim somefile.txt", unread_commands[0].command_line())
+        self.assertEqual("git commit -a -m \"renamed directory.\"",
+                         unread_commands[1].command_line())
         self.assertEqual(2, len(unread_commands))
+
+    def test_get_unread_commands_custom_file_when1SimpleCommand_shouldParseAndSplitCorrectly(self) -> None:
+        unread_commands = command_store_lib._get_unread_commands_custom_file(
+            ['/github/remember3<<!>>: 1589958292:0;vim somefile.txt'])
+        self.assertEqual(": 1589958292:0;vim somefile.txt", unread_commands[0].command_line())
+        self.assertEqual("/github/remember3", unread_commands[0].directory_context())
+        self.assertEqual(1, len(unread_commands))
+
+    def test_get_unread_commands_whenOnly3Commands_shouldAlsoGetContext(self) -> None:
+        file_name = os.path.join(TEST_FILES_PATH, "custom_history_file.txt")
+        file_lines = open(file_name).readlines()
+        unread_commands = command_store_lib.get_unread_commands(
+            file_lines, command_store_lib.HistoryFileType.CUSTOM)
+        self.assertEqual(": 1589958292:0;vim somefile.txt", unread_commands[0].command_line())
+        self.assertEqual("/github/remember3", unread_commands[0].directory_context())
+        self.assertEqual(": 1589958318:0;git commit -a -m \"renamed directory.\"",
+                         unread_commands[1].command_line())
+        self.assertEqual("/github/remember3",
+                         unread_commands[1].directory_context())
+        self.assertEqual(": 1589958318:0; some othercommand", unread_commands[2].command_line())
+        self.assertEqual("/Behrooz/code/", unread_commands[2].directory_context())
+        self.assertEqual(3, len(unread_commands))
 
     def test_CuratedCommands_ReturnCorrectResults(self) -> None:
         self.assertEqual("git foo",
@@ -205,7 +198,8 @@ class TestCommandStoreLib(unittest.TestCase):
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
         self.assertTrue(os.path.isfile(file_name))
         store = command_store_lib.SqlCommandStore(':memory:')
-        command_store_lib.read_history_file(store, file_name, None, False)
+        history_processor = command_store_lib.HistoryProcessor(store, file_name, '', 1)
+        history_processor.process_history_file()
         self.assertTrue(store.has_command_by_name("vim somefile.txt"))
         self.assertIsNotNone(store.delete_command('vim somefile.txt'))
         self.assertFalse(store.has_command_by_name("vim somefile.txt"))
@@ -215,7 +209,7 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertIsNone(store.delete_command('anything'))
 
     def test_ignoreRule_whenCreate_shouldCreateWorkingIgnoreRule(self) -> None:
-        file_name = os.path.join(TEST_FILES_PATH, "test_ignore_rule.txt")
+        file_name = os.path.join(TEST_FILES_PATH, "ignore_rules.txt")
         ignore_rule = command_store_lib.create_ignore_rule(file_name)
         self.assertTrue(ignore_rule.is_match(''))
         self.assertTrue(ignore_rule.is_match('vim opensomefile'))
@@ -226,11 +220,16 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertFalse(ignore_rule.is_match('git comit -a -m'))
         self.assertFalse(ignore_rule.is_match('git foos'))
 
+    def test_ignoreRule_whenFileNotAvailable_shouldCreateEmpty(self) -> None:
+        file_name = os.path.join(TEST_FILES_PATH, "notthere.txt")
+        ignore_rule = command_store_lib.create_ignore_rule(file_name)
+        self.assertEqual(0, ignore_rule.size())
+
     def test_ignoreRule_whenFileDoestExist_shouldNotCrash(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
         store = command_store_lib.SqlCommandStore()
-        command_store_lib.read_history_file(store, file_name,
-                                            "test_files/fileNotthere.txt", False)
+        processor = command_store_lib.HistoryProcessor(store, file_name, 'not there')
+        processor.process_history_file()
 
     def test_command_parseArgs(self) -> None:
         command_str = 'git diff HEAD^ src/b/FragmentOnlyDetector.java'
@@ -285,13 +284,16 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertEqual(command.get_unique_command_id(), result.get_unique_command_id())
         self.assertEqual(command_info_str, result.get_command_info())
 
-    def test_when_generate_from_args_should_call_into_command_store_lib(self) -> None:
+    @mock.patch('remember.command_store_lib.HistoryProcessor.update_history_file')
+    def test_when_generate_from_args_should_call_into_command_store_lib(
+            self, mock_read_file: Mock) -> None:
         history_file_path = 'some/path'
-        return_result_list = [1, 2]
-        with patch('remember.command_store_lib.get_unread_commands', return_value=return_result_list):
-            with patch('remember.command_store_lib.process_history_commands') as read_file:
-                command_store_lib.generate_store_from_args(history_file_path, TEST_FILES_PATH, 1)
-                read_file.assert_called_once_with(mock.ANY, history_file_path, return_result_list, None)
+        return_result_list = ['1', '2']
+        store = command_store_lib.SqlCommandStore()
+        with patch('remember.command_store_lib.get_string_file_lines', return_value=return_result_list):
+            with patch('remember.command_store_lib.load_command_store', return_value=store) :
+                command_store_lib.generate_store_from_args(history_file_path, TEST_FILES_PATH)
+                mock_read_file.assert_called_once_with()
 
     def test_start_history_processing_when_process_history_file_shouldCorrectlyAddToStore(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_input.txt")
@@ -309,7 +311,23 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertTrue(len(matches) == 0)
         matches = store.search_commands(["subl"], True)
         self.assertTrue(len(matches) == 1)
-        store.close()
+
+    def test_start_history_processing_whenProcessCustomHistoryFile_shouldCorrectlyAddToStore(self) -> None:
+        file_name = os.path.join(TEST_FILES_PATH, "custom_history_file.txt")
+        with open(file_name, 'rb') as hist_file:
+            hist_file_content = hist_file.read()
+        store = command_store_lib.SqlCommandStore(':memory:')
+
+        with patch('remember.command_store_lib.open', mock_open(read_data=hist_file_content)) as m:
+            command_store_lib.start_history_processing(store, file_name, 'doesntmatter', 1)
+        handle = m()
+        handle.write.assert_called_with(f'{command_store_lib.CUSTOM_HIST_HEAD}')
+        matches = store.search_commands(["add"], search_info=True)
+        self.assertIsNotNone(matches)
+        matches = store.search_commands(["add"], True)
+        self.assertTrue(len(matches) == 0)
+        matches = store.search_commands(["vim"], True)
+        self.assertTrue(len(matches) == 1)
 
     def test_HistoryProcessor_when_process_history_fileOnProcessedFile_shouldNotRun(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "test_processed.txt")
@@ -320,4 +338,3 @@ class TestCommandStoreLib(unittest.TestCase):
             command_store_lib.start_history_processing(store, file_name, 'doesntmatter', 10)
         handle = m()
         handle.write.assert_not_called()
-        store.close()
