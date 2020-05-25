@@ -71,6 +71,12 @@ def setup_args_for_local_history() -> argparse.Namespace:
     add_history_arg_to_parser(parser)
     add_result_count_max(parser)
     parser.add_argument(
+        "-q",
+        "--query",
+        default=[],
+        nargs='+',
+        help="The term to search for. ex: 'git pull', git")
+    parser.add_argument(
         "-e",
         "--execute",
         help="Execute the searched commands.",
