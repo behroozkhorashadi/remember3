@@ -40,7 +40,7 @@ fi
 
 ALIASES = """
 alias re='python3 {remember_home}/remember_main.py {save_dir} ~/.histcontext'
-alias lh='python3 {remember_home}/local_history.py {save_dir} ~/.histcontext'
+alias lh='python3 {remember_home}/local_history.py {save_dir} ~/.histcontext -q'
 alias rex='python3 {remember_home}/execute_last.py {save_dir} {history_file}'
 alias rt='python3 {remember_home}/remember_main.py {save_dir} ~/.histcontext -m 10'
 alias rei='python3 {remember_home}/remember_main.py -e {save_dir} ~/.histcontex'

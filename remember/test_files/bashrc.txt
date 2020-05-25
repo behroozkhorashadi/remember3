@@ -22,7 +22,7 @@ fi
 
 
 alias re='python3 r3/remember_main.py save ~/.histcontext'
-alias lh='python3 r3/local_history.py save ~/.histcontext'
+alias lh='python3 r3/local_history.py save ~/.histcontext -q'
 alias rex='python3 r3/execute_last.py save history_file_path'
 alias rt='python3 r3/remember_main.py save ~/.histcontext -m 10'
 alias rei='python3 r3/remember_main.py -e save ~/.histcontex'
