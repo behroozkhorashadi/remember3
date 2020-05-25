@@ -144,7 +144,7 @@ class SqlCommandStore(object):
             return count[0][0]
 
     def search_commands(self,
-                        search_terms: List,
+                        search_terms: List[str],
                         starts_with: bool = False,
                         sort: bool = True,
                         search_info: bool = False) -> List[Command]:
@@ -162,12 +162,17 @@ class SqlCommandStore(object):
                 matches.append(command)
         return _rerank_matches(matches, search_terms)
 
-    def get_command_with_context(self, directory_path: str) -> List[Command]:
+    def get_command_with_context(
+            self, directory_path: str, search_terms: List[str]) -> List[Command]:
+        or_chain = _get_sql_or_chain(search_terms, False, False)
+        if or_chain:
+            or_chain = 'AND ' + or_chain
+        select_command = SELECT_CONTEXT_COMMANDS.format(or_chain)
         matches = []
         db_conn = self._get_initialized_db_connection()
         with db_conn:
             cursor = db_conn.cursor()
-            cursor.execute(SELECT_CONTEXT_COMMANDS, (directory_path,))
+            cursor.execute(select_command, (directory_path,))
             rows = cursor.fetchall()
             for row in rows:
                 command = Command(row[0], row[1], row[2], row[3], row[4])
@@ -297,17 +302,22 @@ def _num_terms_matched_in_command(command: Command, terms: List[str]) -> int:
     return count
 
 
-def _create_command_search_select_query(search_term: List, starts_with: bool, sort: bool,
-                                        search_info: bool) -> str:
-    """Create the sql select query for search."""
+def _get_sql_or_chain(search_terms: List, starts_with: bool, search_info: bool) -> str:
+    if len(search_terms) == 0:
+        return ''
     where_terms = []
     prepend_term = '' if starts_with else '%'
-    for term in search_term:
+    for term in search_terms:
         like_term = prepend_term + term + '%'
         where_terms.append("full_command LIKE '{}'".format(like_term))
         if search_info:
             where_terms.append("command_info LIKE '{}'".format(like_term))
-    where_clause = 'WHERE ' + ' OR '.join(where_terms)
+    return f'({" OR ".join(where_terms)})'
+
+
+def _create_command_search_select_query(search_term: List, starts_with: bool, sort: bool,
+                                        search_info: bool) -> str:
+    where_clause = 'WHERE ' + _get_sql_or_chain(search_term, starts_with, search_info)
     query = SEARCH_COMMANDS_QUERY.format(where_clause)
     if sort:
         query = query + ' ORDER BY count_seen DESC, last_used DESC'

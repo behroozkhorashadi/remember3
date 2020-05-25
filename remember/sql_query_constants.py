@@ -96,7 +96,7 @@ SELECT_CONTEXT_COMMANDS = \
     INNER JOIN
       remember ON remember.rowid = command_context.command_id
     WHERE
-      directories.dir_path= ?
+      directories.dir_path= ? {}
     ORDER BY
       remember.last_used DESC;
     """

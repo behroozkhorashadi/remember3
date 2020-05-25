@@ -11,34 +11,34 @@ class SqlStoreTests(unittest.TestCase):
     def test_create_select_query_whenSingleTermAll3_ShouldReturnAll3Query(self) -> None:
         query = _create_command_search_select_query(['grep'], True, True, True)
         query = ' '.join(query.split())
-        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE full_command LIKE 'grep%' OR " \
-                   "command_info LIKE 'grep%' ORDER BY count_seen DESC, last_used DESC"
+        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE (full_command LIKE 'grep%' OR " \
+                   "command_info LIKE 'grep%') ORDER BY count_seen DESC, last_used DESC"
         self.assertEqual(expected, query)
 
 
     def test_create_select_query_whenSingleTermNoSpecial_ShouldReturnBasicQuery(self) -> None:
         query = _create_command_search_select_query(['grep'], False, False, False)
         query = ' '.join(query.split())
-        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE full_command LIKE '%grep%'"
+        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE (full_command LIKE '%grep%')"
         self.assertEqual(expected, query)
 
     def test_create_select_query_whenSingleTermSorted_ShouldReturnBasicSortQuery(self) -> None:
         query = _create_command_search_select_query(['grep'], False, True, False)
         query = ' '.join(query.split())
-        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE full_command LIKE " \
-                   f"'%grep%' ORDER BY count_seen DESC, last_used DESC"
+        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE (full_command LIKE " \
+                   f"'%grep%') ORDER BY count_seen DESC, last_used DESC"
         self.assertEqual(expected, query)
 
     def test_create_select_query_whenSingleTermStartsWith_ShouldReturnStartsWithQuery(self) -> None:
         query = _create_command_search_select_query(['grep'], True, False, False)
         query = ' '.join(query.split())
-        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE full_command LIKE 'grep%'"
+        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE (full_command LIKE 'grep%')"
         self.assertEqual(expected, query)
 
     def test_create_select_query_whenSingleTermStartsWithAndSort_ShouldReturnBothQuery(self) -> None:
         query = _create_command_search_select_query(['grep'], True, True, False)
         query = ' '.join(query.split())
-        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE full_command LIKE 'grep%' " \
+        expected = f"SELECT {REMEMBER_STAR} FROM remember WHERE (full_command LIKE 'grep%') " \
                    "ORDER BY count_seen DESC, last_used DESC"
         self.assertEqual(expected, query)
 
@@ -101,7 +101,7 @@ class SqlStoreTests(unittest.TestCase):
         command2 = Command(command_str2, 12.0, 2, 'command info 2', context_path)
         command_store.add_command(command1)
         command_store.add_command(command2)
-        results = command_store.get_command_with_context(context_path)
+        results = command_store.get_command_with_context(context_path, [])
         self.assertEqual(2, command_store.get_num_commands())
         self.assertEqual(2, len(results))
         self.assertEqual(command_str2, results[0].get_unique_command_id())
@@ -120,7 +120,7 @@ class SqlStoreTests(unittest.TestCase):
         command2 = Command(command_str2, 12.0, 2, 'command info 2', context_path2)
         command_store.add_command(command1)
         command_store.add_command(command2)
-        results = command_store.get_command_with_context(context_path)
+        results = command_store.get_command_with_context(context_path, [])
         self.assertEqual(2, command_store.get_num_commands())
         self.assertEqual(1, len(results))
         self.assertEqual(context_path, results[0].get_directory_context())
@@ -133,7 +133,7 @@ class SqlStoreTests(unittest.TestCase):
         command1 = Command(command_str, 11.0, 1, 'command info 1', context_path)
         command_store.add_command(command1)
         command_store.add_command(command1)
-        results = command_store.get_command_with_context(context_path)
+        results = command_store.get_command_with_context(context_path, [])
         self.assertEqual(1, command_store.get_num_commands())
         self.assertEqual(1, len(results))
         self.assertEqual(context_path, results[0].get_directory_context())
@@ -149,7 +149,7 @@ class SqlStoreTests(unittest.TestCase):
         command2 = Command(command_str2, 12.0, 2, 'command info 2', context_path2)
         command_store.add_command(command1)
         command_store.add_command(command2)
-        results = command_store.get_command_with_context(context_path)
+        results = command_store.get_command_with_context(context_path, [])
         self.assertEqual(2, command_store.get_num_commands())
         self.assertEqual(1, len(results))
         self.assertEqual(context_path, results[0].get_directory_context())
@@ -191,7 +191,7 @@ class SqlStoreTests(unittest.TestCase):
         store.add_command(command)
         self.assertTrue(store.has_command(command))
         self.assertEqual(1, store.get_num_commands())
-        commands = store.get_command_with_context(directory_path)
+        commands = store.get_command_with_context(directory_path, [])
         self.assertEqual(1, len(commands))
         result_command = commands[0]
         self.assertEqual(4, result_command.get_count_seen())
@@ -210,7 +210,7 @@ class SqlStoreTests(unittest.TestCase):
         store.add_command(command_diff_context)
         self.assertTrue(store.has_command(command))
         self.assertEqual(1, store.get_num_commands())
-        commands = store.get_command_with_context(directory_path)
+        commands = store.get_command_with_context(directory_path, [])
         self.assertEqual(1, len(commands))
         result_command = commands[0]
         self.assertEqual(3, result_command.get_count_seen())
@@ -226,7 +226,7 @@ class SqlStoreTests(unittest.TestCase):
         command2 = Command(command_str2, last_used=2, directory_context=directory_path1)
         store.add_command(command1)
         store.add_command(command2)
-        commands = store.get_command_with_context(directory_path1)
+        commands = store.get_command_with_context(directory_path1, [])
         self.assertEqual(2, len(commands))
         result_command = commands[0]
         # Newer on first
@@ -242,15 +242,53 @@ class SqlStoreTests(unittest.TestCase):
         command2 = Command(command_str2, last_used=2, directory_context=directory_path1)
         store.add_command(command1)
         store.add_command(command2)
-        commands = store.get_command_with_context(directory_path1)
+        commands = store.get_command_with_context(directory_path1, [])
         self.assertEqual(2, len(commands))
         store.delete_command(command_str1)
-        commands = store.get_command_with_context(directory_path1)
+        commands = store.get_command_with_context(directory_path1, [])
         self.assertEqual(1, len(commands))
         self.assertEqual(commands[0].get_unique_command_id(), command2.get_unique_command_id())
         store.add_command(command1)
         store.delete_command(command_str2)
-        commands = store.get_command_with_context(directory_path1)
+        commands = store.get_command_with_context(directory_path1, [])
         self.assertEqual(1, len(commands))
         self.assertEqual(commands[0].get_unique_command_id(), command1.get_unique_command_id())
         self.assertEqual(commands[0].get_count_seen(), 1)
+
+    def test_addCommand_when2CommandsAndQueryParams_shouldReturnAppropriateMatchingQuery(
+            self) -> None:
+        store = SqlCommandStore(':memory:')
+        self.assertEqual(0, store.get_num_commands())
+        command_str1 = "some command string"
+        directory_path1 = 'directory/path'
+        command1 = Command(command_str1, last_used=1, directory_context=directory_path1)
+        command_str2 = "some different command"
+        command2 = Command(command_str2, last_used=2, directory_context=directory_path1)
+        store.add_command(command1)
+        store.add_command(command2)
+        commands = store.get_command_with_context(directory_path1, ['different'])
+        self.assertEqual(1, len(commands))
+        result_command = commands[0]
+        # Newer on first
+        self.assertEqual(command2.get_unique_command_id(), result_command.get_unique_command_id())
+
+
+    def test_addCommand_whenMultipleCommandsAndQueryParams_shouldReturnAppropriateMatchingQuery(
+            self) -> None:
+        store = SqlCommandStore(':memory:')
+        self.assertEqual(0, store.get_num_commands())
+        command_str1 = "some command string"
+        directory_path1 = 'directory/path'
+        command1 = Command(command_str1, last_used=1, directory_context=directory_path1)
+        command_str2 = "some different command"
+        command_str3 = "different command"
+        command2 = Command(command_str2, last_used=2, directory_context=directory_path1)
+        command3 = Command(command_str3, last_used=3, directory_context=directory_path1)
+        store.add_command(command1)
+        store.add_command(command2)
+        store.add_command(command3)
+        commands = store.get_command_with_context(directory_path1, ['different'])
+        self.assertEqual(2, len(commands))
+        result_command = commands[0]
+        # Newer on first
+        self.assertEqual(command3.get_unique_command_id(), result_command.get_unique_command_id())
