@@ -41,6 +41,23 @@ def setup_args_for_search() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def setup_args_for_setup() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "rc_file",
+        help="The path to you bash or zsh rc file.")
+    parser.add_argument(
+        "history_file_path",
+        help="The path to your history file. (ex: .bash_hitory zsh_hitory etc).")
+    parser.add_argument(
+        "remember3_dir",
+        help="Path the the remember3 directory (where did you downloadthe repo?): ")
+    parser.add_argument(
+        "save_dir",
+        help="Directory where you want to save all the remember3 metadata files.")
+    return parser.parse_args()
+
+
 def setup_args_for_generate() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     add_history_arg_to_parser(parser)

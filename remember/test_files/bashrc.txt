@@ -1,0 +1,31 @@
+HISTSIZE=50000
+SAVEHIST=50000
+HISTFILESIZE=50000
+HISTFILE=history_file_path
+
+# Remember command hook
+shopt -s histappend
+if ! echo "$PROMPT_COMMAND" | grep 'history -a'; then
+   export PROMPT_COMMAND="history -a;$PROMPT_COMMAND"
+fi
+
+# If PC contains anything, add semicolon and space
+hook_function() {
+  last_line=$(tail -1 history_file_path)
+  pwdresult=$(pwd)
+  echo "$pwdresult<<!>>$last_line" >> ~/.histcontext
+}
+# Add custom PC
+if ! echo "$PROMPT_COMMAND" | grep 'hook_function'; then
+  export PROMPT_COMMAND='hook_function;'$PROMPT_COMMAND
+fi
+
+
+alias re='python3 r3/remember_main.py save ~/.histcontext'
+alias lh='python3 r3/local_history.py save ~/.histcontext'
+alias rex='python3 r3/execute_last.py save history_file_path'
+alias rt='python3 r3/remember_main.py save ~/.histcontext -m 10'
+alias rei='python3 r3/remember_main.py -e save ~/.histcontex'
+alias rti='python3 r3/remember_main.py -e save ~/.histcontext -m 10'
+alias ure='python3 r3/update_store.py save'
+alias gen='python3 r3/generate_store.py ~/.histcontext save'

@@ -257,7 +257,8 @@ def get_file_path(directory_path: str) -> str:
 def load_command_store(db_file_name: str) -> SqlCommandStore:
     """Get the sql command store from the input file."""
     if not os.path.exists(db_file_name):
-        raise Exception(f'db file: {db_file_name} does not exist')
+        msg = f'db file: {db_file_name} does not exist. Please run remember_setup.py to create it.'
+        raise Exception(msg)
     return SqlCommandStore(db_file_name)
 
 

@@ -47,3 +47,13 @@ class TestHandleArgs(TestCase):
         assert args.json == True
         assert args.save_dir == 'save'
         assert args.history_file_path == 'hist'
+
+    @mock.patch('argparse.ArgumentParser.parse_args',
+                return_value=argparse.Namespace(save_dir='save_dir',
+                                                history_file_path='hist',
+                                                execute=True))
+    def test_setup_args_for_local_history(self, mock_args: mock.Mock) -> None:
+        args = handle_args.setup_args_for_local_history()
+        assert args.execute == True
+        assert args.save_dir == 'save_dir'
+        assert args.history_file_path == 'hist'
