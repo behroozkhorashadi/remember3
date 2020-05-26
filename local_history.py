@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Optional, List
+from typing import Optional
 
 from remember.handle_args import setup_args_for_local_history
 import remember.command_store_lib as command_store
