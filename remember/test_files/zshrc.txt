@@ -2,7 +2,7 @@ HISTSIZE=50000
 SAVEHIST=50000
 HISTFILESIZE=50000
 HISTFILE=history_file_path
-setopt SHARE_HISTORY
+setopt INC_APPEND_HISTORY
 
 # Remember command hook
 autoload -U add-zsh-hook
