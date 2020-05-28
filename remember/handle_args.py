@@ -73,9 +73,9 @@ def setup_args_for_local_history() -> argparse.Namespace:
     parser.add_argument(
         "-q",
         "--query",
-        default=[],
-        nargs='+',
-        help="The term to search for. ex: 'git pull', git")
+        default='',
+        nargs='?',
+        help="The term to search for. ex: 'git', 'foo'")
     parser.add_argument(
         "-e",
         "--execute",

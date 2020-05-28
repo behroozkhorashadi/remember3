@@ -40,7 +40,7 @@ fi
 
 ALIASES = """
 alias re='python3 {remember_home}/remember_main.py {save_dir} ~/.histcontext'
-alias lh='python3 {remember_home}/local_history.py {save_dir} ~/.histcontext'
+alias lh='python3 {remember_home}/local_history.py {save_dir} ~/.histcontext -q'
 alias rex='python3 {remember_home}/execute_last.py {save_dir} {history_file}'
 alias rt='python3 {remember_home}/remember_main.py {save_dir} ~/.histcontext -m 10'
 alias rei='python3 {remember_home}/remember_main.py -e {save_dir} ~/.histcontex'
@@ -99,7 +99,7 @@ def ask_user_bash_or_zsh(history_path: str, check_write_dict: OrderedDict) -> bo
     is_zsh = input("Are you using zsh [y or n or [e]xit]: ")
     if is_zsh == 'n' or is_zsh == 'y':
         if is_zsh == 'y':
-            check_write_dict['setopt SHARE_HISTORY'] = 'setopt SHARE_HISTORY\n'
+            check_write_dict['setopt INC_APPEND_HISTORY'] = 'setopt INC_APPEND_HISTORY\n'
         check_write_dict[HOOK_STRING] = create_hook(is_zsh == 'y', history_path)
         return True
     else:

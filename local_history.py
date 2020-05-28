@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Optional, List
+from typing import Optional
 
 from remember.handle_args import setup_args_for_local_history
 import remember.command_store_lib as command_store
@@ -26,13 +26,14 @@ def run_history_command(save_dir: str,
                         directory: str,
                         execute: bool,
                         max_results: int,
-                        search_terms: List[str]) -> Optional[str]:
+                        search_term: str) -> Optional[str]:
+    search_term_list = [search_term] if search_term else []
     store_file_path = command_store.get_file_path(save_dir)
     store = command_store.load_command_store(store_file_path)
     command_store.start_history_processing(store, history_file_path, save_dir, 1)
     print(f'Looking for all past commands with: {directory}')
     start_time = time.time()
-    result = store.get_command_with_context(directory, search_terms)
+    result = store.get_command_with_context(directory, search_term_list)
     total_time = time.time() - start_time
     print("Search time %.5f:  seconds" % total_time)
     return display_and_interact_results(
