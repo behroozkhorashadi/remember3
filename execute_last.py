@@ -8,6 +8,7 @@ from remember.interactive import get_user_input
 
 
 def main() -> None:
+    shell_env = os.getenv('SHELL')
     args = setup_for_execute_last()
     file_path = os.path.join(args.save_dir, DEFAULT_LAST_SAVE_FILE_NAME)
     last_search_results = read_last_search(file_path)
@@ -19,8 +20,10 @@ def main() -> None:
     user_response = get_user_input(msg)
     if user_response:
         return
-    subprocess.call(selected_command, shell=True)
-    interactive.write_to_hist_file(args.history_file_path, selected_command)
+    if not shell_env:
+        subprocess.call(selected_command, shell=True)
+    else:
+        subprocess.call([shell_env, '-i', '-c', selected_command])
 
 
 if __name__ == "__main__":

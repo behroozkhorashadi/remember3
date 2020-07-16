@@ -26,7 +26,12 @@ class InteractiveCommandExecutor(object):
             command = command_results[value - 1]
             if self._history_file_path:
                 write_to_hist_file(self._history_file_path, command.get_unique_command_id())
-            subprocess.call(command.get_unique_command_id(), shell=True)
+            shell_env = os.getenv('SHELL')
+            selected_command = command.get_unique_command_id()
+            if not shell_env:
+                subprocess.call(selected_command, shell=True)
+            else:
+                subprocess.call([shell_env, '-i', '-c', selected_command])
             return True
         else:
             return False
