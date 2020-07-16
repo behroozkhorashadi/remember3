@@ -168,10 +168,6 @@ class Test(unittest.TestCase):
                 handle = m()
                 handle.write.assert_called_with(expected)
 
-    def subprocess_call_mock(self, command_str: str, expected: str, shell: Any) -> None:
-        self.assertEqual(expected, command_str)
-        self.assertTrue(shell)
-
     @patch('remember.interactive.load_user_interactor')
     @patch('remember.command_store_lib.save_last_search')
     def test_display_and_interact_whenSaveAndExecute_shouldDoBoth(
