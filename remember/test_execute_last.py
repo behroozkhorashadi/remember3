@@ -1,8 +1,6 @@
 import argparse
 import os
-from unittest import TestCase
-
-import mock
+from unittest import TestCase, mock
 from unittest.mock import patch
 
 import execute_last
@@ -14,13 +12,14 @@ class TestMain(TestCase):
     @patch('builtins.input', side_effect=[''])
     @patch('remember.command_store_lib.open', mock.mock_open(read_data='some command'))
     @patch('remember.interactive.open', mock.mock_open(read_data=b'some command'))
-    def test_run_remember_command_whenLoadLast_shouldReadFile(self,
-                                                              _: mock.Mock,
-                                                              mock_subproc_call: mock.Mock) -> None:
+    def test_run_remember_command_whenLoadLast_shouldReadFile(
+            self, _, mock_subproc_call) -> None:
         argparse_args = argparse.Namespace(save_dir="test", history_file_path='whatever', index=1)
+        shell_env = os.getenv('SHELL')
+        call_args = [shell_env, '-i', '-c', 'some command']
         with mock.patch('argparse.ArgumentParser.parse_args', return_value=argparse_args):
             execute_last.main()
-            mock_subproc_call.assert_called_once_with('some command', shell=True)
+            mock_subproc_call.assert_called_once_with(call_args)
 
     @mock.patch('subprocess.call')
     def test_run_remember_command_whenSaveDirAndNoNumSelected_shouldReturn(
