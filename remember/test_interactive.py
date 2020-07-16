@@ -1,12 +1,10 @@
 # flake8: noqa
 import os
-import subprocess
 import sys
 import unittest
-from functools import partial
 from typing import Any
-from unittest import mock
 
+import mock
 from mock import patch, Mock, mock_open
 
 import remember.command_store_lib as command_store_lib
@@ -121,14 +119,12 @@ class Test(unittest.TestCase):
         with patch('builtins.input', side_effect=user_input):
             self.assertFalse(InteractiveCommandExecutor.delete_interaction(Mock(), []))
 
-    def test_run_when_command_is_executed(self) -> None:
-        old_call = subprocess.call
+    @patch('subprocess.call')
+    def test_run_when_command_is_executed(self, mock_subproc) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command_str = "testing delete this command"
         command = Command(command_str)
         command2 = Command("remove this also")
-        test_call = partial(self.subprocess_call_mock, expected=command_str)
-        subprocess.call = test_call  # type: ignore
         self.assertEqual(store.get_num_commands(), 0)
         store.add_command(command)
         store.add_command(command2)
@@ -137,7 +133,9 @@ class Test(unittest.TestCase):
         user_input = ['1']
         with patch('builtins.input', side_effect=user_input):
             self.assertTrue(interactive_command.run([command, command2]))
-        subprocess.call = old_call
+        shell_env = os.getenv('SHELL')
+        call_args = [shell_env, '-i', '-c', command_str]
+        mock_subproc.assert_called_once_with(call_args)
 
     def test_run_whenResultsAreEmpty_shouldReturnFalse(self) -> None:
         interactive_command = InteractiveCommandExecutor()
@@ -145,16 +143,17 @@ class Test(unittest.TestCase):
         with patch('builtins.input', side_effect=user_input):
             self.assertFalse(interactive_command.run([]))
 
-    def test_run_whenCommandChosen_shouldWriteToHistFile(self) -> None:
+    @patch('subprocess.call')
+    def test_run_whenCommandChosen_shouldWriteToHistFile(self, sub_process_mock) -> None:
         command_str = "Command to write to history file"
         command = Command(command_str)
         interactive_command = InteractiveCommandExecutor('SomeHistoryFile.txt')
-        user_input = ['1']
-        with patch('builtins.input', side_effect=user_input):
-            with patch('remember.interactive.open', mock_open(read_data=b'some command')) as m:
+        with patch('builtins.input', side_effect=['1']):
+            with patch('builtins.open', mock_open(read_data=b'some command')) as m:
                 self.assertTrue(interactive_command.run([command]))
                 handle = m()
                 handle.write.assert_called_with(command_str + '\n')
+        sub_process_mock.assert_called_once()
 
     def test_run_whenCommandChosenInZsh_shouldWriteToHistFile(self) -> None:
         command_str = "Command to write to history file"
@@ -173,8 +172,8 @@ class Test(unittest.TestCase):
         self.assertEqual(expected, command_str)
         self.assertTrue(shell)
 
-    @mock.patch('remember.interactive.load_user_interactor')
-    @mock.patch('remember.command_store_lib.save_last_search')
+    @patch('remember.interactive.load_user_interactor')
+    @patch('remember.command_store_lib.save_last_search')
     def test_display_and_interact_whenSaveAndExecute_shouldDoBoth(
             self, save_search: Mock, load_interactor: Mock) -> None:
         results = [Command('grep command'), Command('vim command')]
@@ -184,8 +183,8 @@ class Test(unittest.TestCase):
         save_search.assert_called_once_with(expected_path, results)
         load_interactor.assert_called_once_with('history_file')
 
-    @mock.patch('remember.interactive.load_user_interactor')
-    @mock.patch('remember.command_store_lib.save_last_search')
+    @patch('remember.interactive.load_user_interactor')
+    @patch('remember.command_store_lib.save_last_search')
     def test_display_and_interact_whenTruncateResult_shouldOnlySaveTruncatedResult(
             self, save_search: Mock, load_interactor: Mock) -> None:
         results = [Command('grep command'), Command('vim command')]
@@ -196,12 +195,10 @@ class Test(unittest.TestCase):
         save_search.assert_called_once_with(expected_path, results)
         load_interactor.assert_called_once_with('history_file')
 
-
-    @mock.patch('remember.command_store_lib.print_commands')
-    @mock.patch('subprocess.call')
-    @mock.patch('remember.interactive.load_user_interactor',
-                return_value=InteractiveCommandExecutor())
-    @mock.patch('remember.command_store_lib.save_last_search')
+    @patch('remember.command_store_lib.print_commands')
+    @patch('subprocess.call')
+    @patch('remember.interactive.load_user_interactor', return_value=InteractiveCommandExecutor())
+    @patch('remember.command_store_lib.save_last_search')
     def test_display_nd_interact_whenUserChooses1_shouldDo1(
             self, save_search: Mock, load_interactor: Mock, subprocess_mock: Mock,
             print_mock: Mock) -> None:
@@ -216,7 +213,9 @@ class Test(unittest.TestCase):
         results = results[:1]
         save_search.assert_called_once_with(expected_path, results)
         load_interactor.assert_called_once_with('history_file')
-        subprocess_mock.assert_called_once_with(command.get_unique_command_id(), shell=True)
+        shell_env = os.getenv('SHELL')
+        call_args = [shell_env, '-i', '-c', command.get_unique_command_id()]
+        subprocess_mock.assert_called_once_with(call_args)
         print_mock.assert_called_once()
 
     def test_load_interactive_whenCallingLoad_shouldHaveCorrectHistoryFile(self) -> None:
