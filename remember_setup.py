@@ -61,31 +61,49 @@ def main() -> None:
 
     args = setup_args_for_setup()
     check_write_dict['HISTFILE'] = HISTORY_FILE.format(args.history_file_path)
+    remember_home = args.remember3_dir
+    save_dir = args.save_dir
+    history_file = args.history_file_path
+    alias_lines = ALIASES.format(
+        remember_home=remember_home, save_dir=save_dir, history_file=history_file).split('\n')
+    alias_dict = get_alias_dict(alias_lines)
     if not ask_user_bash_or_zsh(args.history_file_path, check_write_dict):
         return
     lines_to_append = []
     if os.path.exists(args.rc_file):
         with open(args.rc_file, 'r') as rc_file:
-            lines_to_append.extend(check_rc_file(rc_file.readlines(), check_write_dict))
+            rc_file_lines = rc_file.readlines()
+            lines_to_append.extend(check_rc_file(rc_file_lines, check_write_dict))
+            lines_to_append.extend(check_rc_file(rc_file_lines, alias_dict))
     else:
         lines_to_append.extend([x for x in check_write_dict.values()])
-    remember_home = args.remember3_dir
-    save_dir = args.save_dir
-    history_file = args.history_file_path
-    lines_to_append.append(
-        ALIASES.format(remember_home=remember_home, save_dir=save_dir, history_file=history_file))
-    write_lines_to_file(args.rc_file, ''.join(lines_to_append))
-    create_db_if_doesnt_exist(save_dir)
+        lines_to_append.extend([x for x in alias_dict.values()])
+
+    if is_ok_to_append(lines_to_append, args.rc_file):
+        write_lines_to_file(args.rc_file, ''.join(lines_to_append))
+        create_db_if_doesnt_exist(save_dir)
+
+
+def is_ok_to_append(lines_to_append: List[str], rc_file_path: str) -> bool:
+    for line in lines_to_append:
+        print(line)
+    user_response = input(f'Ok to add the following lines to {rc_file_path}? [y|n]: ')
+    return user_response == 'y'
+
+
+def get_alias_dict(alias_lines: List[str]) -> OrderedDict:
+    alias_write_dict = OrderedDict()
+    for line in alias_lines:
+        split_equals = line.split('=')
+        alias_write_dict[split_equals[0]] = line + '\n'
+    return alias_write_dict
 
 
 def write_lines_to_file(rc_file_path: str, lines_to_append: str) -> None:
-    if len(lines_to_append) == 0:
+    if len(lines_to_append) == 0 or not is_ok_to_append(lines_to_append, rc_file_path):
         return
     with open(rc_file_path, 'a') as rc_file:
         rc_file.write(lines_to_append)
-    if len(lines_to_append) > 0:
-        print(f'Ok we made some changes your going to want to enter the following into your '
-              f'command line prompt: source {rc_file_path}')
 
 
 def create_db_if_doesnt_exist(save_dir: str) -> None:
@@ -114,7 +132,7 @@ def create_hook(is_zsh: bool, history_file_path: str) -> str:
     return BASH_REMEMBER_HOOK.format(hook_str=HOOK_STRING, hook_func=hook_function)
 
 
-def check_rc_file(lines, check_write_dict) -> List[str]:
+def check_rc_file(lines: List[str], check_write_dict: OrderedDict) -> List[str]:
     lines_to_append = []
     for key, value in check_write_dict.items():
         if not any(key in line for line in lines):
