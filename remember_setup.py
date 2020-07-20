@@ -100,7 +100,7 @@ def get_alias_dict(alias_lines: List[str]) -> OrderedDict:
 
 
 def write_lines_to_file(rc_file_path: str, lines_to_append: str) -> None:
-    if len(lines_to_append) == 0 or not is_ok_to_append(lines_to_append, rc_file_path):
+    if len(lines_to_append) == 0 or not is_ok_to_append(lines_to_append.split('\n'), rc_file_path):
         return
     with open(rc_file_path, 'a') as rc_file:
         rc_file.write(lines_to_append)
