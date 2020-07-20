@@ -1,0 +1,4 @@
+1. Output which directory was a command run from
+2. Local history for multiple key words. Only single keyword is currently supported
+3. If counts are 1 but command is basically the same merge them
+4. Purge old and unused commands
