@@ -1,0 +1,9 @@
+ure -d and hit return with no input
+Traceback (most recent call last):
+  File "/Users/behrooz/Personal/GitRepos/remember3/update_store.py", line 33, in <module>
+    main(InteractiveCommandExecutor())
+  File "/Users/behrooz/Personal/GitRepos/remember3/update_store.py", line 26, in main
+    command_executor.delete_interaction(store, search_results)
+  File "/Users/behrooz/Personal/GitRepos/remember3/remember/interactive.py", line 72, in delete_interaction
+    index = int(index_str.strip())
+ValueError: invalid literal for int() with base 10: ''
