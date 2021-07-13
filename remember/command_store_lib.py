@@ -50,6 +50,7 @@ class HistoryFileType(Enum):
     CUSTOM = 2
 
 
+# TODO: add logging
 class HistoryProcessor(object):
     """This class helps process the history file into the store"""
 
