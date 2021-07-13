@@ -4,7 +4,7 @@ import sqlite3
 from collections import OrderedDict
 from typing import List
 
-from remember.command_store_lib import get_file_path
+from remember.command_store_lib import get_file_path, CUSTOM_HIST_HEAD
 from remember.handle_args import setup_args_for_setup
 
 HISTORY_FILE = 'HISTFILE={}\n'
@@ -43,7 +43,7 @@ alias re='python3 {remember_home}/remember_main.py {save_dir} ~/.histcontext'
 alias lh='python3 {remember_home}/local_history.py {save_dir} ~/.histcontext -q'
 alias rex='python3 {remember_home}/execute_last.py {save_dir} {history_file}'
 alias rt='python3 {remember_home}/remember_main.py {save_dir} ~/.histcontext -m 10'
-alias rei='python3 {remember_home}/remember_main.py -e {save_dir} ~/.histcontex'
+alias rei='python3 {remember_home}/remember_main.py -e {save_dir} ~/.histcontext'
 alias rti='python3 {remember_home}/remember_main.py -e {save_dir} ~/.histcontext -m 10'
 alias ure='python3 {remember_home}/update_store.py {save_dir}'
 alias gen='python3 {remember_home}/generate_store.py ~/.histcontext {save_dir}'
@@ -82,6 +82,7 @@ def main() -> None:
     if is_ok_to_append(lines_to_append, args.rc_file):
         write_lines_to_file(args.rc_file, ''.join(lines_to_append))
         create_db_if_doesnt_exist(save_dir)
+    write_lines_to_file(os.path.expanduser("~/.histcontext"), CUSTOM_HIST_HEAD)
 
 
 def is_ok_to_append(lines_to_append: List[str], rc_file_path: str) -> bool:

@@ -1,0 +1,3 @@
+/github/remember3<<!>>: 1589958292:0;vim somefile.txt
+/github/remember3<<!>>: 1589958318:0;git commit -a -m "renamed directory."
+/Behrooz/code/<<!>>: 1589958318:0; some othercommand

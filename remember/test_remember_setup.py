@@ -6,7 +6,7 @@ import mock
 from mock import patch, Mock
 
 import remember_setup
-
+from remember.command_store_lib import CUSTOM_HIST_HEAD
 
 TEST_PATH_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_FILES_PATH = os.path.join(TEST_PATH_DIR, "test_files")
@@ -25,11 +25,15 @@ class TestMain(TestCase):
     def test_setup_args_for_update_when(
             self, mock_db_write: Mock, mock_write: Mock, mock_args: Mock) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "bashrc.txt")
-        content = open(file_name).read()
+        with open(file_name) as test_file:
+            content = test_file.read()
         user_input = ['n', 'y']
+        expanded_path = os.path.expanduser('~/.histcontext')
         with patch('builtins.input', side_effect=user_input):
             remember_setup.main()
-            mock_write.assert_called_once_with('rc_file', content)
+            assert mock_write.call_count == 2
+            calls = [mock.call('rc_file', content), mock.call(expanded_path, CUSTOM_HIST_HEAD)]
+            mock_write.assert_has_calls(calls)
 
     @mock.patch('argparse.ArgumentParser.parse_args',
                 return_value=argparse.Namespace(rc_file='rc_file',
@@ -41,12 +45,16 @@ class TestMain(TestCase):
     def test_setup_args_for_update_when_zshrc(
             self, mock_db_write: Mock, mock_write: Mock, mock_args: Mock) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "zshrc.txt")
-        content = open(file_name).read()
+        with open(file_name) as test_file:
+            content = test_file.read()
 
         user_input = ['y', 'y']
+        expanded_path = os.path.expanduser('~/.histcontext')
         with patch('builtins.input', side_effect=user_input):
             remember_setup.main()
-            mock_write.assert_called_once_with('rc_file', content)
+            assert mock_write.call_count == 2
+            calls = [mock.call('rc_file', content), mock.call(expanded_path, CUSTOM_HIST_HEAD)]
+            mock_write.assert_has_calls(calls)
 
     @mock.patch('argparse.ArgumentParser.parse_args',
                 return_value=argparse.Namespace(rc_file='rc_file',
@@ -72,6 +80,9 @@ class TestMain(TestCase):
     def test_setup_args_for_update_whenEverythingIsThereAlready(
             self, mock_db_write: Mock, mock_write: Mock, mock_args: Mock) -> None:
         user_input = ['y', 'y']
+        expanded_path = os.path.expanduser('~/.histcontext')
         with patch('builtins.input', side_effect=user_input):
             remember_setup.main()
-            mock_write.assert_called_once_with(ZSHFILE, '')
+            assert mock_write.call_count == 2
+            calls = [mock.call(ZSHFILE, ''), mock.call(expanded_path, CUSTOM_HIST_HEAD)]
+            mock_write.assert_has_calls(calls)

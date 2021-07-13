@@ -16,6 +16,8 @@ CUSTOM_HIST_SEPARATOR = '<<!>>'
 REMEMBER_DB_FILE_NAME = 'remember.db'
 DEFAULT_LAST_SAVE_FILE_NAME = 'last_saved_results.txt'
 IGNORE_RULE_FILE_NAME = 'ignore_rules.txt'
+ERROR_CUSTOM_HIST_FILE = f"This looks like a custom history file format. Please add '{CUSTOM_HIST_HEAD}' " \
+                         f"as the first line to ~/.histcontext"
 
 
 class BColors(object):
@@ -102,10 +104,11 @@ def create_ignore_rule(src_file: str) -> IgnoreRules:
     }
     if not os.path.isfile(src_file):
         return ignore_rules
-    for line in open(src_file).readlines():
-        split = line.split(":", 1)
-        if len(split) == 2:
-            methods[split[0]](split[1].strip())
+    with open(src_file) as ignore_file:
+        for line in ignore_file.readlines():
+            split = line.split(":", 1)
+            if len(split) == 2:
+                methods[split[0]](split[1].strip())
     return ignore_rules
 
 
@@ -143,59 +146,18 @@ def _create_indexed_highlighted_print_string(index: int, command_str: str, comma
            f'--count:{command.get_count_seen()}{BColors.ENDC}'
 
 
-# def get_last_n_lines(file_name: str, max_read_lines: int = -1) -> List[str]:
-#     #TODO use this method instead of the less efficient one that read the whole file.
-#     # Create an empty list to keep the track of last N lines
-#     list_of_lines = []
-#     # Open file for reading in binary mode
-#     with open(file_name, 'rb') as read_obj:
-#         # Move the cursor to the end of the file
-#         read_obj.seek(0, os.SEEK_END)
-#         # Create a buffer to keep the last read line
-#         buffer = bytearray()
-#         # Get the current position of pointer i.e eof
-#         pointer_location = read_obj.tell()
-#         # Loop till pointer reaches the top of the file
-#         while pointer_location >= 0:
-#             # Move the file pointer to the location pointed by pointer_location
-#             read_obj.seek(pointer_location)
-#             # Shift pointer location by -1
-#             pointer_location = pointer_location -1
-#             # read that byte / character
-#             new_byte = read_obj.read(1)
-#             # If the read byte is new line character then it means one line is read
-#             if new_byte == b'\n':
-#                 # Save the line in list of lines
-#                 last_read_line = buffer.decode()[::-1]
-#                 if PROCESSED_TO_TAG in last_read_line:
-#                     return list(reversed(list_of_lines))
-#                 list_of_lines.append(buffer.decode()[::-1])
-#                 # If the size of list reaches N, then return the reversed list
-#                 if max_read_lines != -1 and len(list_of_lines) == max_read_lines:
-#                     return list(reversed(list_of_lines))
-#                 # Reinitialize the byte array to save next line
-#                 buffer = bytearray()
-#             else:
-#                 # If last read character is not eol then add it in buffer
-#                 buffer.extend(new_byte)
-#
-#         # As file is read completely, if there is still data in buffer, then its first line.
-#         if len(buffer) > 0:
-#             list_of_lines.append(buffer.decode()[::-1])
-#
-#     # return the reversed list
-#     return list(reversed(list_of_lines))
-
 def get_string_file_lines(src_file: str) -> List[str]:
     unprocessed_lines: List = []
     tmp_hist_file = src_file + '.tmp'
     shutil.copyfile(src_file, tmp_hist_file)
-    history_lines = open(tmp_hist_file, 'rb').readlines()
+    hist_file = open(tmp_hist_file, 'rb')
+    history_lines = hist_file.readlines()
     for line in history_lines:
         line_str = _try_decode_line(line)
         if line_str:
             unprocessed_lines.append(line_str)
     os.remove(tmp_hist_file)
+    hist_file.close()
     return unprocessed_lines
 
 
@@ -204,6 +166,8 @@ def get_unread_commands(history_lines: List[str],
     assert (file_type != HistoryFileType.UNKNOWN)
     """Read the history file and get all the unread commands."""
     unprocessed_commands: List[CommandAndContext] = []
+    if file_type != HistoryFileType.CUSTOM and CUSTOM_HIST_SEPARATOR in history_lines[0]:
+        print(ERROR_CUSTOM_HIST_FILE)
     if file_type == HistoryFileType.CUSTOM:
         return _get_unread_commands_custom_file(history_lines[1:])
     for line in reversed(history_lines):

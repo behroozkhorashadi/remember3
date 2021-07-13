@@ -162,7 +162,8 @@ class TestCommandStoreLib(unittest.TestCase):
 
     def test_get_unread_commands_whenOnly3Commands_shouldAlsoGetContext(self) -> None:
         file_name = os.path.join(TEST_FILES_PATH, "custom_history_file.txt")
-        file_lines = open(file_name).readlines()
+        with open(file_name) as test_file:
+            file_lines = test_file.readlines()
         unread_commands = command_store_lib.get_unread_commands(
             file_lines, command_store_lib.HistoryFileType.CUSTOM)
         self.assertEqual(": 1589958292:0;vim somefile.txt", unread_commands[0].command_line())
@@ -174,6 +175,15 @@ class TestCommandStoreLib(unittest.TestCase):
         self.assertEqual(": 1589958318:0; some othercommand", unread_commands[2].command_line())
         self.assertEqual("/Behrooz/code/", unread_commands[2].directory_context())
         self.assertEqual(3, len(unread_commands))
+
+    def test_get_unread_commands_whenMissedLabeledFileType_shouldPrintWarning(self) -> None:
+        file_name = os.path.join(TEST_FILES_PATH, "custom_history_file_without_header.txt")
+        with open(file_name) as test_file:
+            file_lines = test_file.readlines()
+        with patch('sys.stdout', new_callable=io.StringIO) as std_out_mock:
+            command_store_lib.get_unread_commands(file_lines, command_store_lib.HistoryFileType.STANDARD)
+            expected = command_store_lib.ERROR_CUSTOM_HIST_FILE + '\n'
+            self.assertEqual(expected, std_out_mock.getvalue())
 
     def test_CuratedCommands_ReturnCorrectResults(self) -> None:
         self.assertEqual("git foo",
