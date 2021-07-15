@@ -45,6 +45,6 @@ jobs:
         run: |
           pytest -v --cov=.
       - name: Upload coverage data to coveralls.io
-        run: coveralls
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
