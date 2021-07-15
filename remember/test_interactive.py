@@ -119,8 +119,9 @@ class Test(unittest.TestCase):
         with patch('builtins.input', side_effect=user_input):
             self.assertFalse(InteractiveCommandExecutor.delete_interaction(Mock(), []))
 
+    @patch('os.getenv', return_value='/bin/zsh')
     @patch('subprocess.call')
-    def test_run_when_command_is_executed(self, mock_subproc) -> None:
+    def test_run_when_command_is_executed(self, mock_subproc, env_mock) -> None:
         store = command_store_lib.SqlCommandStore(':memory:')
         command_str = "testing delete this command"
         command = Command(command_str)
@@ -191,13 +192,14 @@ class Test(unittest.TestCase):
         save_search.assert_called_once_with(expected_path, results)
         load_interactor.assert_called_once_with('history_file')
 
+    @patch('os.getenv', return_value='/bin/zsh')
     @patch('remember.command_store_lib.print_commands')
     @patch('subprocess.call')
     @patch('remember.interactive.load_user_interactor', return_value=InteractiveCommandExecutor())
     @patch('remember.command_store_lib.save_last_search')
     def test_display_nd_interact_whenUserChooses1_shouldDo1(
             self, save_search: Mock, load_interactor: Mock, subprocess_mock: Mock,
-            print_mock: Mock) -> None:
+            print_mock: Mock, env_mock: Mock) -> None:
         command = Command('grep command')
         results = [command, Command('vim command')]
         user_input = ['1']
