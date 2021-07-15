@@ -1,4 +1,4 @@
-name: Python package
+name: remember3_workflow
 
 on: [push]
 
