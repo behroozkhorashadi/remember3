@@ -8,12 +8,13 @@ from remember.command_store_lib import DEFAULT_LAST_SAVE_FILE_NAME
 
 
 class TestMain(TestCase):
+    @patch('os.getenv', return_value='/bin/zsh')
     @patch('subprocess.call')
     @patch('builtins.input', side_effect=[''])
     @patch('remember.command_store_lib.open', mock.mock_open(read_data='some command'))
     @patch('remember.interactive.open', mock.mock_open(read_data=b'some command'))
     def test_run_remember_command_whenLoadLast_shouldReadFile(
-            self, _, mock_subproc_call) -> None:
+            self, _, mock_subproc_call, mock_env) -> None:
         argparse_args = argparse.Namespace(save_dir="test", history_file_path='whatever', index=1)
         shell_env = os.getenv('SHELL')
         call_args = [shell_env, '-i', '-c', 'some command']
