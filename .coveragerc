@@ -1,5 +1,6 @@
 [run]
 omit = venv/*
+branch = True
 
 [report]
 exclude_lines =
