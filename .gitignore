@@ -35,3 +35,6 @@ output/*/index.html
 .bootstrap
 .appveyor.token
 *.bak
+
+Brewfile
+.vscode

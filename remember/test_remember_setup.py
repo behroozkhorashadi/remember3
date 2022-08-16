@@ -5,7 +5,7 @@ from unittest import TestCase
 import mock
 from mock import patch, Mock
 
-import remember_setup
+import install
 from remember.command_store_lib import CUSTOM_HIST_HEAD
 
 TEST_PATH_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -30,7 +30,7 @@ class TestMain(TestCase):
         user_input = ['n', 'y']
         expanded_path = os.path.expanduser('~/.histcontext')
         with patch('builtins.input', side_effect=user_input):
-            remember_setup.main()
+            install.main()
             assert mock_write.call_count == 2
             calls = [mock.call('rc_file', content), mock.call(expanded_path, CUSTOM_HIST_HEAD)]
             mock_write.assert_has_calls(calls)
@@ -51,7 +51,7 @@ class TestMain(TestCase):
         user_input = ['y', 'y']
         expanded_path = os.path.expanduser('~/.histcontext')
         with patch('builtins.input', side_effect=user_input):
-            remember_setup.main()
+            install.main()
             assert mock_write.call_count == 2
             calls = [mock.call('rc_file', content), mock.call(expanded_path, CUSTOM_HIST_HEAD)]
             mock_write.assert_has_calls(calls)
@@ -67,7 +67,7 @@ class TestMain(TestCase):
             self, mock_db_write: Mock, mock_write: Mock, mock_args: Mock) -> None:
         user_input = ['e']
         with patch('builtins.input', side_effect=user_input):
-            remember_setup.main()
+            install.main()
             mock_write.assert_not_called()
 
     @mock.patch('argparse.ArgumentParser.parse_args',
@@ -82,7 +82,7 @@ class TestMain(TestCase):
         user_input = ['y', 'y']
         expanded_path = os.path.expanduser('~/.histcontext')
         with patch('builtins.input', side_effect=user_input):
-            remember_setup.main()
+            install.main()
             assert mock_write.call_count == 2
             calls = [mock.call(ZSHFILE, ''), mock.call(expanded_path, CUSTOM_HIST_HEAD)]
             mock_write.assert_has_calls(calls)
