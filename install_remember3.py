@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
+from argparse import Namespace
+from dataclasses import dataclass
 import os
 import pathlib
 import shutil
 import sqlite3
 from collections import OrderedDict
 from tkinter import filedialog as fd
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from remember.command_store_lib import get_file_path, CUSTOM_HIST_HEAD
 from remember.handle_args import setup_args_for_setup
+from remember.constants import ALIASES, CUSTOM_HISTORY_FILE_PATH, DEFAULT_REMEMBER_SAVE_DIR
 
-DEAFAULT_REMEMBER_SAVE_DIR = os.path.expanduser("~/.remember3")
+
 HISTORY_FILE_PATH = os.getenv('HISTFILE')
 HISTORY_FILE = 'HISTFILE={}\n'
 HOOK_STRING = '# Remember command hook'
 HOOK_FUNCTION = """hook_function() {{
   last_line=$(tail -1 {})
   pwdresult=$(pwd)
-  echo "$pwdresult<<!>>$last_line" >> ~/.histcontext
+  echo "$pwdresult<<!>>$last_line" >> ~/.remember3/.histcontext
 }}"""
 
 ZSH_REMEMBER_HOOK = """
@@ -43,55 +46,63 @@ fi
 
 """
 
-ALIASES = """
-alias re='python3 {remember_home}/remember_main.py {save_dir} ~/.histcontext'
-alias lh='python3 {remember_home}/local_history.py {save_dir} ~/.histcontext -q'
-alias rex='python3 {remember_home}/execute_last.py {save_dir} {history_file}'
-alias rt='python3 {remember_home}/remember_main.py {save_dir} ~/.histcontext -m 10'
-alias rei='python3 {remember_home}/remember_main.py -e {save_dir} ~/.histcontext'
-alias rti='python3 {remember_home}/remember_main.py -e {save_dir} ~/.histcontext -m 10'
-alias ure='python3 {remember_home}/update_store.py {save_dir}'
-alias gen='python3 {remember_home}/generate_store.py ~/.histcontext {save_dir}'
-"""
+
+@dataclass
+class SetupArgs:
+    is_zsh: bool
+    save_dir_path: str
+    history_file_path: str
+    rc_file_path: str
 
 
 def main() -> None:
+    args = setup_args_for_setup()
+    setup_args = setup_all_files_and_dirs(args)
+    if not setup_args:
+        return
+    is_zsh = setup_args.is_zsh
+    history_file_path = setup_args.history_file_path
+    save_dir = setup_args.save_dir_path
+    rc_file_path = setup_args.rc_file_path
+    alias_dict, check_write_dict = create_lines_to_write(is_zsh, history_file_path, save_dir)
+    write_lines_to_files(rc_file_path, save_dir, check_write_dict, alias_dict)
 
+
+def setup_all_files_and_dirs(args: Namespace) -> Optional[SetupArgs]:
+    is_zsh = _ask_user_is_zsh()
+    if is_zsh is None:
+        return None
+    history_file_path = _get_history_file_path(is_zsh)
+    print(history_file_path)
+    if not history_file_path:
+        return None
+    rc_file_path = _return_rc_file_path(is_zsh, args.rc_file)
+    if not rc_file_path:
+        print("Counldn't find your RC file, please add it as an arg.")
+        return None
+    print(rc_file_path)
+    save_dir = _create_remember_save_dir()
+    print(f"save dir is {save_dir}")
+    _import_remember_files(save_dir)
+    return SetupArgs(is_zsh, save_dir, history_file_path, rc_file_path)
+
+
+def create_lines_to_write(is_zsh: bool, history_file_path: str, save_dir) -> Tuple[OrderedDict, OrderedDict]:
+    remember_home = pathlib.Path(__file__).parent.resolve()
     # The keys are what to check for in the rc file the values are what to write
     # if the key isn't present
     check_write_dict = OrderedDict()
     check_write_dict['HISTSIZE'] = 'HISTSIZE=50000\n'
     check_write_dict['SAVEHIST'] = 'SAVEHIST=50000\n'
     check_write_dict['HISTFILESIZE'] = 'HISTFILESIZE=50000\n'
-
-    args = setup_args_for_setup()
-    is_zsh = _ask_user_is_zsh()
-    if not is_zsh:
-        return
-    history_file_path = _get_history_file_path(is_zsh)
-    print(history_file_path)
-    if not history_file_path:
-        return
-    if not _ask_user_bash_or_zsh(is_zsh, history_file_path, check_write_dict):
-        return
-    rc_file_path = _return_rc_file_path(is_zsh)
-    if not rc_file_path:
-        print("Counldn't find your RC file, please add it as an arg.")
-        return
-    print(rc_file_path)
-    if not rc_file_path:
-        if args.rc_file:
-            rc_file_path = str(args.rc_file)
-        else:
-            return
-    save_dir = _create_remember_save_dir()
-    print(f"save dir is {save_dir}")
-    _import_remember_files(save_dir)
+    _append_rc_file_options(is_zsh, history_file_path, check_write_dict)
     check_write_dict['HISTFILE'] = HISTORY_FILE.format(history_file_path)
-    remember_home = pathlib.Path(__file__).parent.resolve()
-    alias_lines = ALIASES.format(
-        remember_home=remember_home, save_dir=save_dir, history_file=history_file_path).split('\n')
-    alias_dict = _get_alias_dict(alias_lines)
+    alias_lines = ALIASES.format(remember_home=remember_home, save_dir=save_dir).split('\n')
+    alias_dict = get_alias_dict(alias_lines)
+    return alias_dict, check_write_dict
+
+
+def write_lines_to_files(rc_file_path: str, save_dir: str, check_write_dict: OrderedDict, alias_dict: OrderedDict) -> None:
     lines_to_append = []
     if os.path.exists(rc_file_path):
         with open(rc_file_path, 'r', encoding="utf8") as rc_file:
@@ -105,7 +116,7 @@ def main() -> None:
     if is_ok_to_append(lines_to_append, rc_file_path):
         write_lines_to_file(rc_file_path, ''.join(lines_to_append))
         create_db_if_doesnt_exist(save_dir)
-    write_lines_to_file(os.path.expanduser("~/.histcontext"), CUSTOM_HIST_HEAD)
+    write_lines_to_file(CUSTOM_HISTORY_FILE_PATH, CUSTOM_HIST_HEAD)
 
 
 def is_ok_to_append(lines_to_append: List[str], rc_file_path: str) -> bool:
@@ -115,7 +126,7 @@ def is_ok_to_append(lines_to_append: List[str], rc_file_path: str) -> bool:
     return user_response == 'y'
 
 
-def _get_alias_dict(alias_lines: List[str]) -> OrderedDict:
+def get_alias_dict(alias_lines: List[str]) -> OrderedDict:
     alias_write_dict = OrderedDict()
     for line in alias_lines:
         split_equals = line.split('=')
@@ -136,13 +147,10 @@ def create_db_if_doesnt_exist(save_dir: str) -> None:
     conn.close()
 
 
-def _ask_user_bash_or_zsh(is_zsh: bool, history_path: str, check_write_dict: OrderedDict) -> bool:
+def _append_rc_file_options(is_zsh: bool, history_path: str, check_write_dict: OrderedDict) -> None:
     if is_zsh:
         check_write_dict['setopt INC_APPEND_HISTORY'] = 'setopt INC_APPEND_HISTORY\n'
-        check_write_dict[HOOK_STRING] = create_hook(is_zsh, history_path)
-        return True
-    print("I didn't do anything.")
-    return False
+    check_write_dict[HOOK_STRING] = create_hook(is_zsh, history_path)
 
 
 def create_hook(is_zsh: bool, history_file_path: str) -> str:
@@ -160,12 +168,12 @@ def check_rc_file(lines: List[str], check_write_dict: OrderedDict) -> List[str]:
     return lines_to_append
 
 
-def _return_rc_file_path(is_zsh: bool) -> Optional[str]:
+def _return_rc_file_path(is_zsh: bool, rc_arg_val: str) -> Optional[str]:
     rc_path = "~/.zshrc" if is_zsh else "~/.bashrc"
     expanded_path = os.path.expanduser(rc_path)
     if os.path.exists(expanded_path):
         return expanded_path
-    return None
+    return rc_arg_val
 
 
 def _get_history_file_path(is_zsh: bool) -> Optional[str]:
@@ -185,31 +193,35 @@ def _ask_user_is_zsh() -> Optional[bool]:
 
 
 def _create_remember_save_dir() -> str:
-    if not os.path.exists(DEAFAULT_REMEMBER_SAVE_DIR):
-        os.mkdir(DEAFAULT_REMEMBER_SAVE_DIR)
-    return DEAFAULT_REMEMBER_SAVE_DIR
+    if not os.path.exists(DEFAULT_REMEMBER_SAVE_DIR):
+        os.mkdir(DEFAULT_REMEMBER_SAVE_DIR)
+    return DEFAULT_REMEMBER_SAVE_DIR
 
 
 def _import_remember_files(save_dir_path: str) -> None:
     if _is_answer_yes("Do you have a remember db file to import?"):
-        filename_path = fd.askopenfilename(filetypes=[("Database files", "*.db")])
-        new_file_path = os.path.join(save_dir_path, os.path.basename(filename_path))
-        if os.path.exists(new_file_path) and _is_answer_yes("Delete existing db file?"):
-            os.remove(new_file_path)
-            shutil.copyfile(filename_path, new_file_path)
-        print(filename_path)
+        import_db_file_path = fd.askopenfilename(filetypes=[("Database files", "*.db")])
+        db_new_location = os.path.join(save_dir_path, os.path.basename(import_db_file_path))
+        db_file_exists = os.path.exists(db_new_location)
+        if not db_file_exists or (db_file_exists and _is_answer_yes("Delete existing db file?")):
+            if db_file_exists:
+                os.remove(db_new_location)
+            shutil.copyfile(import_db_file_path, db_new_location)
+            print(db_new_location)
     if _is_answer_yes("Do you have a remember ignore file to import"):
-        filename_path = fd.askopenfilename(filetypes=[("Text files", "*.txt")])
-        new_file_path = os.path.join(save_dir_path, os.path.basename(filename_path))
-        if os.path.exists(new_file_path) and _is_answer_yes("Delete existing ignore file?"):
-            os.remove(new_file_path)
-            shutil.copyfile(filename_path, new_file_path)
-        print(filename_path)
+        import_ignore_file_path = fd.askopenfilename(filetypes=[("Text files", "*.txt")])
+        ignore_new_location = os.path.join(save_dir_path, os.path.basename(import_ignore_file_path))
+        ignore_file_exists = os.path.exists(ignore_new_location)
+        if  not ignore_file_exists or (ignore_file_exists and _is_answer_yes("Delete existing ignore file?")):
+            if ignore_file_exists:
+                os.remove(ignore_new_location)
+            shutil.copyfile(import_ignore_file_path, ignore_new_location)
+            print(ignore_new_location)
 
 
 def _is_answer_yes(question: str) -> bool:
     yes_no_answer = input(f"{question} [y|n]: ")
-    return yes_no_answer in  ('y', 'yes')
+    return yes_no_answer in ('y', 'yes')
 
 
 if __name__ == "__main__":

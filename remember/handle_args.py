@@ -1,4 +1,7 @@
 import argparse
+import os
+
+from remember.constants import CUSTOM_HISTORY_FILE_PATH
 
 
 def setup_for_execute_last() -> argparse.Namespace:
@@ -48,18 +51,6 @@ def setup_args_for_setup() -> argparse.Namespace:
         "--rc_file",
         required=False,
         help="The path to you bash or zsh rc file.")
-    # auto find this and or make it optional
-    # parser.add_argument(
-    #     "history_file_path",
-    #     help="The path to your history file. (ex: .bash_hitory zsh_hitory etc).")
-    # # not needed you can just get the path of the setupfile
-    # parser.add_argument(
-    #     "remember3_dir",
-    #     help="Path the the remember3 directory (where did you downloadthe repo?): ")
-    # # this should be ~/.remember3
-    # parser.add_argument(
-    #     "save_dir",
-    #     help="Directory where you want to save all the remember3 metadata files.")
     return parser.parse_args()
 
 
@@ -91,7 +82,9 @@ def setup_args_for_local_history() -> argparse.Namespace:
 
 def add_history_arg_to_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
-        "history_file_path",
+        "-p",
+        "--history_file_path",
+        default=CUSTOM_HISTORY_FILE_PATH,
         help="The path to the history file. ex: '~/.bash_history'")
 
 
@@ -111,7 +104,9 @@ def add_search(parser: argparse.ArgumentParser) -> None:
 
 def add_save_dir(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
-        "save_dir",
+        "-s"
+        "--save_dir",
+        default=os.path.expanduser("~/.remember3"),
         help="The directory path. ex: ~/dir/where/serializedfile/is")
 
 
@@ -120,7 +115,7 @@ def add_result_count_max(parser: argparse.ArgumentParser) -> None:
         "-m",
         "--max",
         type=int,
-        default=10000,
+        default=10,
         help="the maximum number of returned results you want to see.")
 
 

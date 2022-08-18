@@ -164,8 +164,8 @@ def get_string_file_lines(src_file: str) -> List[str]:
 
 def get_unread_commands(history_lines: List[str],
                         file_type: HistoryFileType) -> List[CommandAndContext]:
-    assert (file_type != HistoryFileType.UNKNOWN)
     """Read the history file and get all the unread commands."""
+    assert (file_type != HistoryFileType.UNKNOWN)
     unprocessed_commands: List[CommandAndContext] = []
     if file_type != HistoryFileType.CUSTOM and CUSTOM_HIST_SEPARATOR in history_lines[0]:
         print(ERROR_CUSTOM_HIST_FILE)
