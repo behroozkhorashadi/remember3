@@ -87,7 +87,8 @@ def setup_all_files_and_dirs(args: Namespace) -> Optional[SetupArgs]:
     return SetupArgs(is_zsh, save_dir, history_file_path, rc_file_path)
 
 
-def create_lines_to_write(is_zsh: bool, history_file_path: str, save_dir) -> Tuple[OrderedDict, OrderedDict]:
+def create_lines_to_write(
+        is_zsh: bool, history_file_path: str, save_dir) -> Tuple[OrderedDict, OrderedDict]:
     remember_home = pathlib.Path(__file__).parent.resolve()
     # The keys are what to check for in the rc file the values are what to write
     # if the key isn't present
@@ -102,7 +103,11 @@ def create_lines_to_write(is_zsh: bool, history_file_path: str, save_dir) -> Tup
     return alias_dict, check_write_dict
 
 
-def write_lines_to_files(rc_file_path: str, save_dir: str, check_write_dict: OrderedDict, alias_dict: OrderedDict) -> None:
+def write_lines_to_files(
+        rc_file_path: str,
+        save_dir: str,
+        check_write_dict: OrderedDict,
+        alias_dict: OrderedDict) -> None:
     lines_to_append = []
     if os.path.exists(rc_file_path):
         with open(rc_file_path, 'r', encoding="utf8") as rc_file:
@@ -212,7 +217,8 @@ def _import_remember_files(save_dir_path: str) -> None:
         import_ignore_file_path = fd.askopenfilename(filetypes=[("Text files", "*.txt")])
         ignore_new_location = os.path.join(save_dir_path, os.path.basename(import_ignore_file_path))
         ignore_file_exists = os.path.exists(ignore_new_location)
-        if  not ignore_file_exists or (ignore_file_exists and _is_answer_yes("Delete existing ignore file?")):
+        if (not ignore_file_exists
+                or (ignore_file_exists and _is_answer_yes("Delete existing ignore file?"))):
             if ignore_file_exists:
                 os.remove(ignore_new_location)
             shutil.copyfile(import_ignore_file_path, ignore_new_location)

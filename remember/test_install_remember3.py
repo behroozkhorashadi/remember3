@@ -1,6 +1,3 @@
-# pylint: disable=missing-class-docstring
-# pylint: disable=missing-function-docstring
-# pylint: disable=missing-module-docstring
 import os
 import pathlib
 from typing import OrderedDict
@@ -10,14 +7,15 @@ import mock
 from mock import patch, Mock
 
 import install_remember3
-from remember.constants import ALIASES, DEFAULT_REMEMBER_SAVE_DIR
+from remember.constants import ALIASES
 
 TEST_PATH_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_FILES_PATH = os.path.join(TEST_PATH_DIR, "test_files")
 ZSHFILE = os.path.join(TEST_FILES_PATH, "zshrc.txt")
 
 
-expected = OrderedDict([('HISTSIZE', 'HISTSIZE=50000\n'), ('SAVEHIST', 'SAVEHIST=50000\n'), ('HISTFILESIZE', 'HISTFILESIZE=50000\n'), ('setopt INC_APPEND_HISTORY', 'setopt INC_APPEND_HISTORY\n'), ('# Remember command hook', '\n# Remember command hook\nautoload -U add-zsh-hook\nhook_function() {\n  last_line=$(tail -1 histfile_path)\n  pwdresult=$(pwd)\n  echo "$pwdresult<<!>>$last_line" >> ~/.remember3/.histcontext\n}\nadd-zsh-hook precmd hook_function\n\n'), ('HISTFILE', 'HISTFILE=histfile_path\n')]) # pylint: disable=line-too-long
+expected = OrderedDict([('HISTSIZE', 'HISTSIZE=50000\n'), ('SAVEHIST', 'SAVEHIST=50000\n'), ('HISTFILESIZE', 'HISTFILESIZE=50000\n'), ('setopt INC_APPEND_HISTORY', 'setopt INC_APPEND_HISTORY\n'), ('# Remember command hook',
+                       '\n# Remember command hook\nautoload -U add-zsh-hook\nhook_function() {\n  last_line=$(tail -1 histfile_path)\n  pwdresult=$(pwd)\n  echo "$pwdresult<<!>>$last_line" >> ~/.remember3/.histcontext\n}\nadd-zsh-hook precmd hook_function\n\n'), ('HISTFILE', 'HISTFILE=histfile_path\n')])  # pylint: disable=line-too-long
 
 remember_home = remember_home = pathlib.Path(__file__).parent.parent.resolve()
 alias_lines = ALIASES.format(remember_home=remember_home, save_dir="save_dir").split('\n')
@@ -55,7 +53,8 @@ class TestMain(TestCase):
     @mock.patch('install_remember3.write_lines_to_files')
     @mock.patch('install_remember3.setup_all_files_and_dirs')
     @mock.patch('os.path.exists')
-    def test_main(self, exists_mock: Mock, setup_remember_mock: Mock, write_lines_mock: Mock, _arg_parse: Mock):
+    def test_main(self, exists_mock: Mock, setup_remember_mock: Mock, write_lines_mock: Mock,
+                  _arg_parse: Mock):
         exists_mock.return_value = True
         setup_remember_mock.return_value = install_remember3.SetupArgs(
             True, "save_dir", "histfile_path", "rc_file_path")
@@ -70,5 +69,6 @@ class TestMain(TestCase):
         user_input = ['y', 'y', 'y']
         with patch('builtins.input', side_effect=user_input):
             with patch('install_remember3.open', mock_open()) as mocked_file:
-                install_remember3.write_lines_to_files("rc_path", "save_path", expected, expected_aliases)
+                install_remember3.write_lines_to_files(
+                    "rc_path", "save_path", expected, expected_aliases)
                 mocked_file.assert_called()
